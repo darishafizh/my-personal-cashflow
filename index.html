@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="CashFlow Tracker - Aplikasi tracking cuan dan pengeluaran dengan tampilan futuristik untuk Gen Z Indonesia" />
+  <title>CashFlow Tracker 💸 | Kelola Cuan Lo!</title>
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/favicon.png">
+  <meta name="theme-color" content="#0a0a1a">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Animated Background -->
+    <div class="bg-particles"></div>
+    
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <span class="logo-icon">💰</span>
+        <h1 class="logo-text">CashFlow</h1>
+      </div>
+      <p class="tagline">Kelola cuan lo biar makin cuan! ✨</p>
+    </header>
+
+    <!-- Summary Cards -->
+    <section class="summary-section">
+      <div class="summary-card income-card">
+        <div class="card-icon">📈</div>
+        <div class="card-content">
+          <span class="card-label">Cuan Masuk</span>
+          <span class="card-value" id="totalIncome">Rp 0</span>
+        </div>
+      </div>
+      
+      <div class="summary-card expense-card">
+        <div class="card-icon">📉</div>
+        <div class="card-content">
+          <span class="card-label">Duit Keluar</span>
+          <span class="card-value" id="totalExpense">Rp 0</span>
+        </div>
+      </div>
+      
+      <div class="summary-card balance-card">
+        <div class="card-icon">🎯</div>
+        <div class="card-content">
+          <span class="card-label">Sisa Dompet</span>
+          <span class="card-value" id="balance">Rp 0</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Wallet Balance Cards -->
+    <section class="wallet-section">
+      <h2 class="section-title">💳 Saldo Dompet Digital</h2>
+      <div class="wallet-cards">
+        <div class="wallet-card wallet-bca">
+          <div class="wallet-icon">🏦</div>
+          <div class="wallet-info">
+            <span class="wallet-name">BCA</span>
+            <span class="wallet-balance" id="balanceBca">Rp 0</span>
+          </div>
+        </div>
+        
+        <div class="wallet-card wallet-mandiri">
+          <div class="wallet-icon">🏛️</div>
+          <div class="wallet-info">
+            <span class="wallet-name">Mandiri</span>
+            <span class="wallet-balance" id="balanceMandiri">Rp 0</span>
+          </div>
+        </div>
+        
+        <div class="wallet-card wallet-shopeepay">
+          <div class="wallet-icon">🛒</div>
+          <div class="wallet-info">
+            <span class="wallet-name">ShopeePay</span>
+            <span class="wallet-balance" id="balanceShopeepay">Rp 0</span>
+          </div>
+        </div>
+        
+        <div class="wallet-card wallet-emoney">
+          <div class="wallet-icon">💳</div>
+          <div class="wallet-info">
+            <span class="wallet-name">E-Money</span>
+            <span class="wallet-balance" id="balanceEmoney">Rp 0</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Input Forms Section -->
+      <section class="forms-section">
+        <!-- Income Form -->
+        <div class="form-card">
+          <h2 class="form-title">
+            <span class="title-icon">💵</span>
+            Tambah Cuan
+          </h2>
+          <form id="incomeForm" class="transaction-form">
+            <div class="form-group">
+              <label for="incomeAmount">Jumlah Cuan</label>
+              <div class="input-wrapper">
+                <span class="input-prefix">Rp</span>
+                <input type="number" id="incomeAmount" placeholder="500000" required min="1">
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="incomeDesc">Sumber Cuan</label>
+              <input type="text" id="incomeDesc" placeholder="Gajian, Freelance, dll" required>
+            </div>
+            <div class="form-group">
+              <label for="incomeWallet">Simpan ke</label>
+              <select id="incomeWallet" required>
+                <option value="">Pilih dompet...</option>
+                <option value="bca">🏦 BCA</option>
+                <option value="mandiri">🏛️ Mandiri</option>
+                <option value="shopeepay">🛒 ShopeePay</option>
+                <option value="emoney">💳 E-Money</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="incomeDate">Tanggal</label>
+              <input type="date" id="incomeDate" required>
+            </div>
+            <button type="submit" class="btn btn-income">
+              <span>Gas Tambah! 🚀</span>
+            </button>
+          </form>
+        </div>
+
+        <!-- Expense Form -->
+        <div class="form-card">
+          <h2 class="form-title">
+            <span class="title-icon">💸</span>
+            Catat Pengeluaran
+          </h2>
+          <form id="expenseForm" class="transaction-form">
+            <div class="form-group">
+              <label for="expenseAmount">Jumlah Keluar</label>
+              <div class="input-wrapper">
+                <span class="input-prefix">Rp</span>
+                <input type="number" id="expenseAmount" placeholder="100000" required min="1">
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="expenseCategory">Jenis Pengeluaran</label>
+              <select id="expenseCategory" required>
+                <option value="">Pilih kategori...</option>
+                <option value="kost">🏠 Kost</option>
+                <option value="kebutuhan">🛒 Kebutuhan</option>
+                <option value="harian">☕ Harian</option>
+                <option value="ortu">👨‍👩‍👧 Orang Tua</option>
+                <option value="zakat">🕌 Zakat</option>
+                <option value="lainnya">📦 Lainnya</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="expenseDesc">Keterangan</label>
+              <input type="text" id="expenseDesc" placeholder="Bayar kost, Makan, dll" required>
+            </div>
+            <div class="form-group">
+              <label for="expenseWallet">Bayar dari</label>
+              <select id="expenseWallet" required>
+                <option value="">Pilih dompet...</option>
+                <option value="bca">🏦 BCA</option>
+                <option value="mandiri">🏛️ Mandiri</option>
+                <option value="shopeepay">🛒 ShopeePay</option>
+                <option value="emoney">💳 E-Money</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="expenseDate">Tanggal</label>
+              <input type="date" id="expenseDate" required>
+            </div>
+            <button type="submit" class="btn btn-expense">
+              <span>Catat Dulu! 📝</span>
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Charts Section -->
+      <section class="charts-section">
+        <div class="chart-card">
+          <h2 class="chart-title">📊 Breakdown Pengeluaran</h2>
+          <div class="chart-container">
+            <canvas id="expenseChart"></canvas>
+          </div>
+          <p class="chart-empty" id="expenseChartEmpty">Belum ada data pengeluaran, yuk mulai catat! 📝</p>
+        </div>
+        
+        <div class="chart-card">
+          <h2 class="chart-title">📈 Trend Bulanan</h2>
+          <div class="chart-container">
+            <canvas id="trendChart"></canvas>
+          </div>
+          <p class="chart-empty" id="trendChartEmpty">Belum ada data transaksi, yuk mulai! 💪</p>
+        </div>
+      </section>
+
+      <!-- Transactions Section -->
+      <section class="transactions-section">
+        <div class="transactions-header">
+          <h2 class="section-title">📋 Riwayat Transaksi</h2>
+          <div class="filter-tabs">
+            <button class="filter-btn active" data-filter="all">Semua</button>
+            <button class="filter-btn" data-filter="income">Cuan Masuk</button>
+            <button class="filter-btn" data-filter="expense">Duit Keluar</button>
+          </div>
+        </div>
+        
+        <div class="transactions-list" id="transactionsList">
+          <div class="empty-state">
+            <span class="empty-icon">🤷</span>
+            <p>Belum ada transaksi nih!</p>
+            <p class="empty-subtitle">Yuk mulai catat cuan lo! 💪</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>Made with 💜 for Gen Z Indonesia</p>
+      <p class="footer-sub">CashFlow Tracker © 2026</p>
+    </footer>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast">
+    <span class="toast-icon"></span>
+    <span class="toast-message"></span>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
