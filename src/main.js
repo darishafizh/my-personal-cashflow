@@ -2,7 +2,7 @@
 // CashFlow Tracker - Main Application
 // =========================================
 
-import './style.css';
+
 import { StorageManager } from './storage.js';
 import { ChartManager } from './chart.js';
 
