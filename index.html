@@ -143,6 +143,63 @@
           </form>
         </div>
 
+        <!-- Transfer Form -->
+        <div class="form-card">
+          <h2 class="form-title">
+            <span class="title-icon">🔄</span>
+            Transfer Dana
+          </h2>
+          <form id="transferForm" class="transaction-form">
+            <div class="form-group">
+              <label for="transferAmount">Jumlah Transfer</label>
+              <div class="input-wrapper">
+                <span class="input-prefix">Rp</span>
+                <input type="number" id="transferAmount" placeholder="100000" required min="1">
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="transferAdmin">Biaya Admin</label>
+              <div class="input-wrapper">
+                <span class="input-prefix">Rp</span>
+                <input type="number" id="transferAdmin" placeholder="2500" required min="0" value="0">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="transferFrom">Dari</label>
+                <select id="transferFrom" required>
+                  <option value="">Pilih...</option>
+                  <option value="bca">🏦 BCA</option>
+                  <option value="mandiri">🏛️ Mandiri</option>
+                  <option value="shopeepay">🛒 SPay</option>
+                  <option value="emoney">💳 E-Money</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="transferTo">Ke</label>
+                <select id="transferTo" required>
+                  <option value="">Pilih...</option>
+                  <option value="bca">🏦 BCA</option>
+                  <option value="mandiri">🏛️ Mandiri</option>
+                  <option value="shopeepay">🛒 SPay</option>
+                  <option value="emoney">💳 E-Money</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="transferDesc">Keterangan</label>
+              <input type="text" id="transferDesc" placeholder="Pindah saldo, dll" required>
+            </div>
+            <div class="form-group">
+              <label for="transferDate">Tanggal</label>
+              <input type="date" id="transferDate" required>
+            </div>
+            <button type="submit" class="btn btn-transfer">
+              <span>Pindahin Cuan! ⚡</span>
+            </button>
+          </form>
+        </div>
+
         <!-- Expense Form -->
         <div class="form-card">
           <h2 class="form-title">

@@ -327,6 +327,12 @@ body {
   gap: var(--space-lg);
 }
 
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+}
+
 .form-group {
   display: flex;
   flex-direction: column;
@@ -440,15 +446,20 @@ select option {
   box-shadow: 0 0 30px var(--success-glow);
 }
 
-.btn-expense {
-  background: linear-gradient(135deg, var(--accent), var(--secondary));
-  color: #fff;
-  box-shadow: var(--shadow-glow-secondary);
-}
-
 .btn-expense:hover {
   transform: translateY(-2px);
   box-shadow: 0 0 30px var(--secondary-glow);
+}
+
+.btn-transfer {
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: #000;
+  box-shadow: var(--shadow-glow-primary);
+}
+
+.btn-transfer:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 30px var(--primary-glow);
 }
 
 /* Charts Section */
@@ -623,6 +634,10 @@ select option {
   background: linear-gradient(135deg, rgba(155, 93, 229, 0.2), rgba(241, 91, 181, 0.2));
 }
 
+.transaction-icon.transfer {
+  background: linear-gradient(135deg, rgba(0, 245, 212, 0.2), rgba(155, 93, 229, 0.2));
+}
+
 .transaction-info {
   flex: 1;
   min-width: 0;
@@ -672,6 +687,10 @@ select option {
 
 .transaction-amount.expense {
   color: var(--danger);
+}
+
+.transaction-amount.transfer {
+  color: var(--warning);
 }
 
 .btn-delete {
@@ -1014,6 +1033,23 @@ select option {
 .wallet-badge-mandiri { background: rgba(253, 184, 19, 0.2); color: #fdb813; }
 .wallet-badge-shopeepay { background: rgba(238, 77, 45, 0.2); color: #ee4d2d; }
 .wallet-badge-emoney { background: rgba(0, 166, 81, 0.2); color: #00a651; }
+
+.transfer-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  margin-left: var(--space-xs);
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.transfer-badge span {
+  padding: 0 4px;
+  border-radius: 4px;
+}
 
 /* Responsive for Wallet Cards */
 @media (max-width: 768px) {

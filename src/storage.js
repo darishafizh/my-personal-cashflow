@@ -134,8 +134,11 @@ export class StorageManager {
         .reduce((sum, t) => sum + t.amount, 0);
         
       const expense = monthTransactions
-        .filter(t => t.type === 'expense')
-        .reduce((sum, t) => sum + t.amount, 0);
+        .reduce((sum, t) => {
+          if (t.type === 'expense') return sum + t.amount;
+          if (t.type === 'transfer') return sum + (t.adminFee || 0);
+          return sum;
+        }, 0);
       
       result.push({
         label: new Intl.DateTimeFormat('id-ID', { month: 'short' }).format(date),

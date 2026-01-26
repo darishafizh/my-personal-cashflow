@@ -13,6 +13,7 @@ const chartManager = new ChartManager();
 // DOM Elements
 const incomeForm = document.getElementById('incomeForm');
 const expenseForm = document.getElementById('expenseForm');
+const transferForm = document.getElementById('transferForm');
 const transactionsList = document.getElementById('transactionsList');
 const filterBtns = document.querySelectorAll('.filter-btn');
 
@@ -32,6 +33,7 @@ function init() {
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('incomeDate').value = today;
   document.getElementById('expenseDate').value = today;
+  document.getElementById('transferDate').value = today;
   
   // Load and render data
   renderTransactions();
@@ -57,6 +59,12 @@ function setupEventListeners() {
   expenseForm.addEventListener('submit', (e) => {
     e.preventDefault();
     handleExpenseSubmit();
+  });
+  
+  // Transfer form submit
+  transferForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    handleTransferSubmit();
   });
   
   // Filter buttons
@@ -155,6 +163,52 @@ function handleExpenseSubmit() {
   showToast('Pengeluaran dicatat! 📝', 'success');
 }
 
+function handleTransferSubmit() {
+  const amount = parseFloat(document.getElementById('transferAmount').value);
+  const adminFee = parseFloat(document.getElementById('transferAdmin').value) || 0;
+  const fromWallet = document.getElementById('transferFrom').value;
+  const toWallet = document.getElementById('transferTo').value;
+  const description = document.getElementById('transferDesc').value.trim();
+  const date = document.getElementById('transferDate').value;
+  
+  if (!amount || !fromWallet || !toWallet || !description || !date) {
+    showToast('Lengkapin dulu datanya ya! 😅', 'error');
+    return;
+  }
+  
+  if (fromWallet === toWallet) {
+    showToast('Dompet tujuan harus beda dong! 😅', 'error');
+    return;
+  }
+  
+  const transaction = {
+    id: generateId(),
+    type: 'transfer',
+    amount,
+    adminFee,
+    fromWallet,
+    toWallet,
+    description,
+    date,
+    createdAt: new Date().toISOString()
+  };
+  
+  storage.addTransaction(transaction);
+  
+  // Reset form
+  transferForm.reset();
+  document.getElementById('transferDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('transferAdmin').value = 0;
+  
+  // Update UI
+  renderTransactions();
+  updateSummary();
+  updateWalletBalances();
+  chartManager.updateCharts(storage.getTransactions());
+  
+  showToast('Transfer berhasil dicatat! ⚡', 'success');
+}
+
 function handleDelete(id) {
   storage.deleteTransaction(id);
   
@@ -199,13 +253,19 @@ function renderTransactions() {
 }
 
 function createTransactionHTML(transaction) {
-  const { id, type, amount, description, date, category, wallet } = transaction;
+  const { id, type, amount, description, date, category, wallet, fromWallet, toWallet, adminFee } = transaction;
   
-  const icon = type === 'income' ? '💵' : getCategoryIcon(category);
+  let icon = type === 'income' ? '💵' : getCategoryIcon(category);
+  if (type === 'transfer') icon = '🔄';
+  
   const formattedAmount = formatCurrency(amount);
   const formattedDate = formatDate(date);
   const categoryLabel = getCategoryLabel(category);
   const walletLabel = getWalletLabel(wallet);
+  
+  const fromWalletLabel = getWalletLabel(fromWallet);
+  const toWalletLabel = getWalletLabel(toWallet);
+  const formattedAdmin = adminFee > 0 ? ` (+${formatCurrency(adminFee)} admin)` : '';
   
   return `
     <div class="transaction-item new" data-id="${id}">
@@ -219,12 +279,19 @@ function createTransactionHTML(transaction) {
             <span>${formattedDate}</span>
             ${category ? `<span class="transaction-category category-${category}">${categoryLabel}</span>` : ''}
             ${wallet ? `<span class="transaction-wallet wallet-badge-${wallet}">${walletLabel}</span>` : ''}
+            ${type === 'transfer' ? `
+              <span class="transfer-badge">
+                <span class="wallet-badge-${fromWallet}">${fromWalletLabel}</span> 
+                → 
+                <span class="wallet-badge-${toWallet}">${toWalletLabel}</span>
+              </span>
+            ` : ''}
           </div>
         </div>
       </div>
       <div class="transaction-right">
         <span class="transaction-amount ${type}">
-          ${type === 'income' ? '+' : '-'}${formattedAmount}
+          ${type === 'income' ? '+' : '-'}${formattedAmount}${type === 'transfer' ? formattedAdmin : ''}
         </span>
         <button class="btn-delete" data-id="${id}" title="Hapus transaksi">
           🗑️
@@ -242,8 +309,11 @@ function updateSummary() {
     .reduce((sum, t) => sum + t.amount, 0);
     
   const totalExpense = transactions
-    .filter(t => t.type === 'expense')
-    .reduce((sum, t) => sum + t.amount, 0);
+    .reduce((sum, t) => {
+      if (t.type === 'expense') return sum + t.amount;
+      if (t.type === 'transfer') return sum + (t.adminFee || 0);
+      return sum;
+    }, 0);
     
   const balance = totalIncome - totalExpense;
   
@@ -336,12 +406,18 @@ function updateWalletBalances() {
   
   wallets.forEach(wallet => {
     const income = transactions
-      .filter(t => t.type === 'income' && t.wallet === wallet)
-      .reduce((sum, t) => sum + t.amount, 0);
+      .reduce((sum, t) => {
+        if (t.type === 'income' && t.wallet === wallet) return sum + t.amount;
+        if (t.type === 'transfer' && t.toWallet === wallet) return sum + t.amount;
+        return sum;
+      }, 0);
     
     const expense = transactions
-      .filter(t => t.type === 'expense' && t.wallet === wallet)
-      .reduce((sum, t) => sum + t.amount, 0);
+      .reduce((sum, t) => {
+        if (t.type === 'expense' && t.wallet === wallet) return sum + t.amount;
+        if (t.type === 'transfer' && t.fromWallet === wallet) return sum + t.amount + (t.adminFee || 0);
+        return sum;
+      }, 0);
     
     const balance = income - expense;
     
