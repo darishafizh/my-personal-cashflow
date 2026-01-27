@@ -812,16 +812,22 @@ async function handleDeleteBudget(id) {
 }
 
 async function handleUseBudget(id) {
-  const budgetItem = storage.getBudgetItems().find(b => b.id === id);
+  // Get budget with actual spent calculation
+  const budgetSummary = storage.getBudgetSummary();
+  const budgetItem = budgetSummary.find(b => b.id === id);
   if (!budgetItem) return;
   
-  // Prompt user for amount
-  const defaultAmount = Math.max(0, budgetItem.amount - (budgetItem.spent || 0));
+  const remaining = Math.max(0, budgetItem.remaining);
+  
+  if (remaining <= 0) {
+    showToast('Budget sudah habis! Edit dulu untuk menambah limit.', 'error');
+    return;
+  }
   
   const amountStr = await CustomAlert.prompt(
     'Gunakan Budget', 
-    `Masukkan jumlah untuk "${budgetItem.name}":`,
-    defaultAmount
+    `Masukkan jumlah untuk "${budgetItem.name}" (Maks: ${formatCurrency(remaining)}):`,
+    remaining
   );
   
   if (amountStr === null) return; // Cancelled
@@ -829,6 +835,11 @@ async function handleUseBudget(id) {
   const amount = parseFloat(amountStr);
   if (isNaN(amount) || amount <= 0) {
     showToast('Jumlah tidak valid! 😅', 'error');
+    return;
+  }
+  
+  if (amount > remaining) {
+    showToast(`Jumlah melebihi sisa budget! Maksimal: ${formatCurrency(remaining)}`, 'error');
     return;
   }
   

@@ -239,16 +239,32 @@ export class StorageManager {
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
     
+    // Get expenses linked to budgets
     const monthExpenses = this.transactions.filter(t => {
       if (t.type !== 'expense') return false;
       const date = new Date(t.date);
       return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
     });
     
+    // Get transfers linked to budgets (description starts with "Budget Transfer:")
+    const monthTransfers = this.transactions.filter(t => {
+      if (t.type !== 'transfer') return false;
+      const date = new Date(t.date);
+      return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+    });
+    
     return this.budgetItems.map(budget => {
-      const spent = monthExpenses
+      // Count expenses with matching budgetItemId
+      const expenseSpent = monthExpenses
         .filter(t => t.budgetItemId === budget.id)
         .reduce((sum, t) => sum + t.amount, 0);
+      
+      // Count transfers with matching budget name in description
+      const transferSpent = monthTransfers
+        .filter(t => t.description && t.description.includes(budget.name))
+        .reduce((sum, t) => sum + t.amount, 0);
+      
+      const spent = expenseSpent + transferSpent;
       
       return {
         ...budget,
