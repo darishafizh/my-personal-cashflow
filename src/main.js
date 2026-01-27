@@ -223,24 +223,26 @@ function handleIncomeSubmit() {
 
 function handleExpenseSubmit() {
   const amount = parseFloat(document.getElementById('expenseAmount').value);
-  const budgetItemId = document.getElementById('expenseBudgetItem').value;
+  const description = document.getElementById('expenseDesc').value.trim();
   const wallet = document.getElementById('expenseWallet').value;
   const date = document.getElementById('expenseDate').value;
   
-  if (!amount || !budgetItemId || !wallet || !date) {
+  if (!amount || !description || !wallet || !date) {
     showToast('Lengkapin dulu datanya ya! 😅', 'error');
     return;
   }
   
-  const budgetItem = storage.getBudgetItems().find(b => b.id === budgetItemId);
+  // Try to match description to a budget item (case-insensitive)
+  const budgetItem = storage.getBudgetItems().find(b => b.name.toLowerCase() === description.toLowerCase());
   
   const transaction = {
     id: generateId(),
     type: 'expense',
     amount,
-    budgetItemId,
-    budgetItemName: budgetItem ? budgetItem.name : 'Unknown',
-    description: budgetItem ? budgetItem.name : 'Unknown',
+    description,
+    budgetItemId: budgetItem ? budgetItem.id : null,
+    budgetItemName: budgetItem ? budgetItem.name : null,
+    category: budgetItem ? 'custom' : 'lainnya', // Fallback category
     wallet,
     date,
     createdAt: new Date().toISOString()
@@ -267,10 +269,9 @@ function handleTransferSubmit() {
   const adminFee = parseFloat(document.getElementById('transferAdmin').value) || 0;
   const fromWallet = document.getElementById('transferFrom').value;
   const toWallet = document.getElementById('transferTo').value;
-  const description = document.getElementById('transferDesc').value.trim();
   const date = document.getElementById('transferDate').value;
   
-  if (!amount || !fromWallet || !toWallet || !description || !date) {
+  if (!amount || !fromWallet || !toWallet || !date) {
     showToast('Lengkapin dulu datanya ya! 😅', 'error');
     return;
   }
@@ -279,6 +280,9 @@ function handleTransferSubmit() {
     showToast('Dompet tujuan harus beda dong! 😅', 'error');
     return;
   }
+
+  const toWalletName = getWalletName(toWallet);
+  const description = `Transfer ke ${toWalletName}`;
   
   const transaction = {
     id: generateId(),
@@ -479,53 +483,41 @@ function getCategoryLabel(category) {
   return labels[category] || category;
 }
 
-function getWalletIcon(wallet) {
+function getWalletIcon(walletId) {
+  const wallet = storage.getWallets().find(w => w.id === walletId);
+  if (wallet) {
+    if (wallet.type === 'bank') return '🏦';
+    if (wallet.type === 'ewallet') return '💳';
+    if (wallet.type === 'cash') return '💵';
+    return '📦';
+  }
+  
+  // Fallback for legacy
   const icons = {
     bca: '🏦',
     mandiri: '🏛️',
     shopeepay: '🛒',
     emoney: '💳'
   };
-  return icons[wallet] || '💳';
+  return icons[walletId] || '💳';
 }
 
-function getWalletLabel(wallet) {
+function getWalletLabel(walletId) {
+  const wallet = storage.getWallets().find(w => w.id === walletId);
+  if (wallet) return wallet.name;
+
+  // Fallback for legacy
   const labels = {
     bca: 'BCA',
     mandiri: 'Mandiri',
     shopeepay: 'SPay',
     emoney: 'E-Money'
   };
-  return labels[wallet] || wallet;
+  return labels[walletId] || walletId;
 }
 
 function updateWalletBalances() {
-  const transactions = storage.getTransactions();
-  const wallets = ['bca', 'mandiri', 'shopeepay', 'emoney'];
-  
-  wallets.forEach(wallet => {
-    const income = transactions
-      .reduce((sum, t) => {
-        if (t.type === 'income' && t.wallet === wallet) return sum + t.amount;
-        if (t.type === 'transfer' && t.toWallet === wallet) return sum + t.amount;
-        return sum;
-      }, 0);
-    
-    const expense = transactions
-      .reduce((sum, t) => {
-        if (t.type === 'expense' && t.wallet === wallet) return sum + t.amount;
-        if (t.type === 'transfer' && t.fromWallet === wallet) return sum + t.amount + (t.adminFee || 0);
-        return sum;
-      }, 0);
-    
-    const balance = income - expense;
-    
-    const elementId = `balance${wallet.charAt(0).toUpperCase() + wallet.slice(1)}`;
-    const el = document.getElementById(elementId);
-    if (el) {
-      el.textContent = formatCurrency(balance);
-    }
-  });
+  renderWalletSection();
 }
 
 function escapeHTML(str) {
@@ -624,21 +616,7 @@ function createBudgetItemHTML(budget) {
   `;
 }
 
-function populateExpenseBudgetDropdown() {
-  const budgetItems = storage.getBudgetItems();
-  const select = document.getElementById('expenseBudgetItem');
-  
-  const placeholder = select.options[0];
-  select.innerHTML = '';
-  select.appendChild(placeholder);
-  
-  budgetItems.forEach(item => {
-    const option = document.createElement('option');
-    option.value = item.id;
-    option.textContent = item.name;
-    select.appendChild(option);
-  });
-}
+
 
 function showBudgetForm(budgetItem = null) {
   currentBudgetId = budgetItem ? budgetItem.id : null;
@@ -690,7 +668,6 @@ function handleBudgetSubmit() {
   
   closeBudgetModal();
   renderBudgetSection();
-  populateExpenseBudgetDropdown();
 }
 
 function handleEditBudget(id) {
@@ -704,7 +681,6 @@ function handleDeleteBudget(id) {
   if (confirm('Yakin mau hapus item budget ini?')) {
     storage.deleteBudgetItem(id);
     renderBudgetSection();
-    populateExpenseBudgetDropdown();
     showToast('Budget item dihapus! 🗑️', 'success');
   }
 }
