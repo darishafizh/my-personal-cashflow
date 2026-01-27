@@ -1343,3 +1343,40 @@ select option {
   .budget-item-amounts { width: 100%; justify-content: space-between; }
   .budget-item-actions { width: 100%; justify-content: flex-end; }
 }
+
+/* =========================================
+   Layout & Spacing Utilities (Added Fixes)
+   ========================================= */
+
+.section-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-lg);
+  flex-wrap: wrap;
+  gap: var(--space-md);
+}
+
+.wallet-section {
+  margin-bottom: var(--space-2xl);
+}
+
+.wallet-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--space-md);
+  width: 100%;
+}
+
+/* Ensure empty state takes full width in grid */
+.wallet-cards .empty-state {
+  grid-column: 1 / -1;
+}
+
+/* Better spacing for add buttons */
+.btn-add-wallet, .btn-add-budget {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  white-space: nowrap;
+}

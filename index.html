@@ -64,40 +64,16 @@
     </section>
 
     <!-- Wallet Balance Cards -->
+    <!-- Wallet Balance Cards -->
     <section class="wallet-section">
-      <h2 class="section-title">💳 Saldo Dompet Digital</h2>
-      <div class="wallet-cards">
-        <div class="wallet-card wallet-bca">
-          <div class="wallet-icon">🏦</div>
-          <div class="wallet-info">
-            <span class="wallet-name">BCA</span>
-            <span class="wallet-balance" id="balanceBca">Rp 0</span>
-          </div>
-        </div>
-        
-        <div class="wallet-card wallet-mandiri">
-          <div class="wallet-icon">🏛️</div>
-          <div class="wallet-info">
-            <span class="wallet-name">Mandiri</span>
-            <span class="wallet-balance" id="balanceMandiri">Rp 0</span>
-          </div>
-        </div>
-        
-        <div class="wallet-card wallet-shopeepay">
-          <div class="wallet-icon">🛒</div>
-          <div class="wallet-info">
-            <span class="wallet-name">ShopeePay</span>
-            <span class="wallet-balance" id="balanceShopeepay">Rp 0</span>
-          </div>
-        </div>
-        
-        <div class="wallet-card wallet-emoney">
-          <div class="wallet-icon">💳</div>
-          <div class="wallet-info">
-            <span class="wallet-name">E-Money</span>
-            <span class="wallet-balance" id="balanceEmoney">Rp 0</span>
-          </div>
-        </div>
+      <div class="section-header-row">
+        <h2 class="section-title">💳 Saldo Dompet Digital</h2>
+        <button class="btn btn-add-wallet" id="btnAddWallet">
+          <span>➕ Tambah Dompet</span>
+        </button>
+      </div>
+      <div class="wallet-cards" id="walletList">
+        <!-- Dynamic wallets will be rendered here -->
       </div>
     </section>
 
@@ -140,10 +116,7 @@
               <label for="incomeWallet">Simpan ke</label>
               <select id="incomeWallet" required>
                 <option value="">Pilih dompet...</option>
-                <option value="bca">🏦 BCA</option>
-                <option value="mandiri">🏛️ Mandiri</option>
-                <option value="shopeepay">🛒 ShopeePay</option>
-                <option value="emoney">💳 E-Money</option>
+                <!-- Dynamic wallet options -->
               </select>
             </div>
             <div class="form-group">
@@ -182,20 +155,14 @@
                 <label for="transferFrom">Dari</label>
                 <select id="transferFrom" required>
                   <option value="">Pilih...</option>
-                  <option value="bca">🏦 BCA</option>
-                  <option value="mandiri">🏛️ Mandiri</option>
-                  <option value="shopeepay">🛒 SPay</option>
-                  <option value="emoney">💳 E-Money</option>
+                  <!-- Dynamic wallet options -->
                 </select>
               </div>
               <div class="form-group">
                 <label for="transferTo">Ke</label>
                 <select id="transferTo" required>
                   <option value="">Pilih...</option>
-                  <option value="bca">🏦 BCA</option>
-                  <option value="mandiri">🏛️ Mandiri</option>
-                  <option value="shopeepay">🛒 SPay</option>
-                  <option value="emoney">💳 E-Money</option>
+                  <!-- Dynamic wallet options -->
                 </select>
               </div>
             </div>
@@ -228,20 +195,14 @@
               </div>
             </div>
             <div class="form-group">
-              <label for="expenseBudgetItem">Item Pengeluaran</label>
-              <select id="expenseBudgetItem" required>
-                <option value="">Pilih item budget...</option>
-                <!-- Options will be populated from budget items -->
-              </select>
+              <label for="expenseDesc">Keterangan</label>
+              <input type="text" id="expenseDesc" placeholder="Bayar kost, Makan, dll" required>
             </div>
             <div class="form-group">
               <label for="expenseWallet">Bayar dari</label>
               <select id="expenseWallet" required>
                 <option value="">Pilih dompet...</option>
-                <option value="bca">🏦 BCA</option>
-                <option value="mandiri">🏛️ Mandiri</option>
-                <option value="shopeepay">🛒 ShopeePay</option>
-                <option value="emoney">💳 E-Money</option>
+                <!-- Dynamic wallet options -->
               </select>
             </div>
             <div class="form-group">
@@ -297,8 +258,8 @@
 
     <!-- Footer -->
     <footer class="footer">
-      <p>Made with 💜 for Gen Z Indonesia</p>
-      <p class="footer-sub">CashFlow Tracker © 2026</p>
+      <p style="font-weight: 600; margin-bottom: 4px;">No Cap, Just Cuan 🧢💰</p>
+      <p class="footer-sub">ManCave 28 by D.H &copy; 2026 - Daris Cuppa Office ☕</p>
     </footer>
   </div>
 
@@ -306,6 +267,42 @@
   <div class="toast" id="toast">
     <span class="toast-icon"></span>
     <span class="toast-message"></span>
+  </div>
+
+  <!-- Wallet Modal -->
+  <div class="budget-modal" id="walletModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="walletModalTitle">Tambah Dompet</h3>
+        <button class="modal-close" id="walletModalClose">×</button>
+      </div>
+      <form id="walletForm" class="budget-form">
+        <div class="form-group">
+          <label for="walletName">Nama Dompet</label>
+          <input type="text" id="walletName" placeholder="Misal: BCA, Dompet Fisik, GoPay" required>
+        </div>
+        <div class="form-group">
+          <label for="walletType">Tipe</label>
+          <select id="walletType" required>
+            <option value="bank">🏦 Bank</option>
+            <option value="ewallet">💳 E-Wallet</option>
+            <option value="cash">💵 Cash / Tunai</option>
+            <option value="other">📦 Lainnya</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="walletBalance">Saldo Awal</label>
+          <div class="input-wrapper">
+            <span class="input-prefix">Rp</span>
+            <input type="number" id="walletBalance" placeholder="0" required min="0">
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" id="btnCancelWallet">Batal</button>
+          <button type="submit" class="btn btn-primary">Simpan</button>
+        </div>
+      </form>
+    </div>
   </div>
 
   <!-- Budget Edit Modal -->
@@ -326,6 +323,13 @@
             <span class="input-prefix">Rp</span>
             <input type="number" id="budgetAmount" placeholder="1000000" required min="0">
           </div>
+        </div>
+        <div class="form-group">
+          <label for="budgetWallet">Sumber Dana (Opsional)</label>
+          <select id="budgetWallet">
+            <option value="">Pilih dompet...</option>
+            <!-- Dynamic wallet options -->
+          </select>
         </div>
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" id="btnCancelBudget">Batal</button>

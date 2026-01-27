@@ -37,6 +37,17 @@ const modalClose = document.getElementById('modalClose');
 // Current budget being edited
 let currentBudgetId = null;
 
+// Wallet elements
+const walletList = document.getElementById('walletList');
+const btnAddWallet = document.getElementById('btnAddWallet');
+const walletModal = document.getElementById('walletModal');
+const walletForm = document.getElementById('walletForm');
+const walletModalTitle = document.getElementById('walletModalTitle');
+const btnCancelWallet = document.getElementById('btnCancelWallet');
+const walletModalClose = document.getElementById('walletModalClose');
+
+let currentWalletId = null;
+
 // =========================================
 // Initialize App
 // =========================================
@@ -47,9 +58,27 @@ function init() {
   document.getElementById('expenseDate').value = today;
   document.getElementById('transferDate').value = today;
   
+  // Migration: Clear old default data if present (run once)
+  if (!localStorage.getItem('migration_v1_cleared')) {
+    // Check if we have the specific default items
+    const oldBudgets = localStorage.getItem('cashflow_budget_items');
+    if (oldBudgets && oldBudgets.includes('budget_kost')) {
+      localStorage.removeItem('cashflow_budget_items');
+      // Also clear transactions to be safe since they might reference old budgets
+      // localStorage.removeItem('cashflow_transactions'); 
+      // Actually let's just clear budgets as requested
+      console.log('Migrated: Cleared old default budgets');
+    }
+    localStorage.setItem('migration_v1_cleared', 'true');
+    
+    // Reload items after clear
+    storage.budgetItems = storage.loadBudgetItems();
+  }
+
   // Load and render data
+  renderWalletSection();
+  populateWalletDropdowns();
   renderBudgetSection();
-  populateExpenseBudgetDropdown();
   renderTransactions();
   updateSummary();
   updateWalletBalances();
@@ -123,6 +152,34 @@ function setupEventListeners() {
       handleDeleteBudget(e.target.closest('.btn-delete-budget').dataset.id);
     }
   });
+  
+  // Wallet event listeners
+  if (btnAddWallet) {
+    btnAddWallet.addEventListener('click', () => showWalletForm());
+  }
+  
+  if (walletForm) {
+    walletForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      handleWalletSubmit();
+    });
+  }
+  
+  if (btnCancelWallet) btnCancelWallet.addEventListener('click', closeWalletModal);
+  if (walletModalClose) walletModalClose.addEventListener('click', closeWalletModal);
+  
+  if (walletModal) {
+    walletModal.addEventListener('click', (e) => {
+      if (e.target === walletModal) closeWalletModal();
+    });
+  }
+  
+  // Wallet item actions
+  if (walletList) {
+    walletList.addEventListener('click', (e) => {
+      // Future: add edit/delete for wallets
+    });
+  }
 }
 
 // =========================================
@@ -560,6 +617,9 @@ function createBudgetItemHTML(budget) {
           ${isOverBudget ? '<span style="color: var(--danger)">⚠️ Over budget!</span>' : ''}
         </div>
       </div>
+      ${budget.walletId ? `<div class="budget-source" style="margin-top: 8px; font-size: 0.8rem; color: var(--text-muted);">
+        Sumber: ${getWalletName(budget.walletId)}
+      </div>` : ''}
     </div>
   `;
 }
@@ -587,6 +647,9 @@ function showBudgetForm(budgetItem = null) {
     modalTitle.textContent = 'Edit Item Budget';
     document.getElementById('budgetName').value = budgetItem.name;
     document.getElementById('budgetAmount').value = budgetItem.amount;
+    if (document.getElementById('budgetWallet')) {
+      document.getElementById('budgetWallet').value = budgetItem.walletId || '';
+    }
   } else {
     modalTitle.textContent = 'Tambah Item Budget';
     budgetForm.reset();
@@ -604,6 +667,7 @@ function closeBudgetModal() {
 function handleBudgetSubmit() {
   const name = document.getElementById('budgetName').value.trim();
   const amount = parseFloat(document.getElementById('budgetAmount').value) || 0;
+  const walletId = document.getElementById('budgetWallet') ? document.getElementById('budgetWallet').value : null;
   
   if (!name) {
     showToast('Nama item harus diisi! 😅', 'error');
@@ -611,13 +675,14 @@ function handleBudgetSubmit() {
   }
   
   if (currentBudgetId) {
-    storage.updateBudgetItem(currentBudgetId, { name, amount });
+    storage.updateBudgetItem(currentBudgetId, { name, amount, walletId });
     showToast('Budget item berhasil diupdate! ✅', 'success');
   } else {
     const budgetItem = {
       id: 'budget_' + generateId(),
       name,
-      amount
+      amount,
+      walletId
     };
     storage.addBudgetItem(budgetItem);
     showToast('Budget item berhasil ditambahkan! ✅', 'success');
@@ -642,4 +707,132 @@ function handleDeleteBudget(id) {
     populateExpenseBudgetDropdown();
     showToast('Budget item dihapus! 🗑️', 'success');
   }
+}
+
+// =========================================
+// Wallet Management Functions
+// =========================================
+function renderWalletSection() {
+  const wallets = storage.getWallets();
+  const walletList = document.getElementById('walletList');
+  
+  if (wallets.length === 0) {
+    walletList.innerHTML = `
+      <div class="empty-state" style="grid-column: 1/-1; padding: var(--space-lg);">
+        <span class="empty-icon">💳</span>
+        <p>Belum ada dompet!</p>
+        <p class="empty-subtitle">Tambah dompet dulu biar bisa catat transaksi.</p>
+      </div>
+    `;
+    return;
+  }
+  
+  walletList.innerHTML = wallets.map(wallet => {
+    const balance = storage.getWalletBalance(wallet.id);
+    let icon = '📦';
+    if (wallet.type === 'bank') icon = '🏦';
+    if (wallet.type === 'ewallet') icon = '💳';
+    if (wallet.type === 'cash') icon = '💵';
+    
+    // Add specific style classes based on wallet type for color coding
+    const typeClass = `wallet-${wallet.type}`; 
+    
+    return `
+      <div class="wallet-card ${typeClass}" data-id="${wallet.id}" style="cursor: pointer;">
+        <div class="wallet-icon">${icon}</div>
+        <div class="wallet-info">
+          <span class="wallet-name">${escapeHTML(wallet.name)}</span>
+          <span class="wallet-balance">${formatCurrency(balance)}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function populateWalletDropdowns() {
+  const wallets = storage.getWallets();
+  const selects = ['incomeWallet', 'expenseWallet', 'transferFrom', 'transferTo', 'budgetWallet'];
+  
+  selects.forEach(id => {
+    const select = document.getElementById(id);
+    if (!select) return;
+    
+    const placeholder = select.options[0];
+    select.innerHTML = '';
+    select.appendChild(placeholder);
+    
+    wallets.forEach(wallet => {
+      const option = document.createElement('option');
+      option.value = wallet.id;
+      let icon = '📦';
+      if (wallet.type === 'bank') icon = '🏦';
+      if (wallet.type === 'ewallet') icon = '💳';
+      if (wallet.type === 'cash') icon = '💵';
+      
+      option.textContent = `${icon} ${wallet.name}`;
+      select.appendChild(option);
+    });
+  });
+}
+
+function showWalletForm() {
+  currentWalletId = null;
+  walletModalTitle.textContent = 'Tambah Dompet';
+  walletForm.reset();
+  walletModal.classList.add('show');
+}
+
+function closeWalletModal() {
+  walletModal.classList.remove('show');
+  walletForm.reset();
+  currentWalletId = null;
+}
+
+function handleWalletSubmit() {
+  const name = document.getElementById('walletName').value.trim();
+  const type = document.getElementById('walletType').value;
+  const initialBalance = parseFloat(document.getElementById('walletBalance').value) || 0;
+  
+  if (!name) {
+    showToast('Nama dompet harus diisi! 😅', 'error');
+    return;
+  }
+  
+  // Create new wallet
+  const wallet = {
+    id: 'wallet_' + generateId(),
+    name,
+    type,
+    createdAt: new Date().toISOString()
+  };
+  
+  storage.addWallet(wallet);
+  
+  // If there's initial balance, create an income transaction
+  if (initialBalance > 0) {
+    const transaction = {
+      id: generateId(),
+      type: 'income',
+      amount: initialBalance,
+      description: 'Saldo Awal',
+      wallet: wallet.id,
+      date: new Date().toISOString().split('T')[0],
+      createdAt: new Date().toISOString()
+    };
+    storage.addTransaction(transaction);
+  }
+  
+  showToast('Dompet berhasil ditambahkan! ✅', 'success');
+  closeWalletModal();
+  
+  // Update UI
+  renderWalletSection();
+  populateWalletDropdowns();
+  updateSummary(); // Because balance might change
+  renderTransactions(); // New transaction added
+}
+
+function getWalletName(walletId) {
+  const wallet = storage.getWallets().find(w => w.id === walletId);
+  return wallet ? wallet.name : 'Unknown';
 }

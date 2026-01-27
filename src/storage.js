@@ -4,11 +4,13 @@
 
 const STORAGE_KEY = 'cashflow_transactions';
 const BUDGET_KEY = 'cashflow_budget_items';
+const WALLET_KEY = 'cashflow_wallets';
 
 export class StorageManager {
   constructor() {
     this.transactions = this.loadTransactions();
     this.budgetItems = this.loadBudgetItems();
+    this.wallets = this.loadWallets();
   }
   
   /**
@@ -171,22 +173,7 @@ export class StorageManager {
   loadBudgetItems() {
     try {
       const data = localStorage.getItem(BUDGET_KEY);
-      if (data) {
-        return JSON.parse(data);
-      }
-      // Default budget items
-      const defaultBudgets = [
-        { id: 'budget_kost', name: 'Kost', amount: 1300000 },
-        { id: 'budget_ortu', name: 'Ortu', amount: 500000 },
-        { id: 'budget_listrik', name: 'Listrik', amount: 0 },
-        { id: 'budget_bekal', name: 'Bekal', amount: 0 },
-        { id: 'budget_kebutuhan', name: 'Kebutuhan per Bulan', amount: 0 },
-        { id: 'budget_emoney', name: 'E-Money', amount: 0 },
-        { id: 'budget_tabungan', name: 'Tabungan', amount: 0 }
-      ];
-      this.budgetItems = defaultBudgets;
-      this.saveBudgetItems();
-      return defaultBudgets;
+      return data ? JSON.parse(data) : [];
     } catch (error) {
       console.error('Error loading budget items:', error);
       return [];
@@ -270,5 +257,67 @@ export class StorageManager {
         percentage: budget.amount > 0 ? (spent / budget.amount) * 100 : 0
       };
     });
+  }
+  
+  // =========================================
+  // Wallet Management Methods
+  // =========================================
+  
+  loadWallets() {
+    try {
+      const data = localStorage.getItem(WALLET_KEY);
+      return data ? JSON.parse(data) : [];
+    } catch (error) {
+      console.error('Error loading wallets:', error);
+      return [];
+    }
+  }
+  
+  saveWallets() {
+    try {
+      localStorage.setItem(WALLET_KEY, JSON.stringify(this.wallets));
+    } catch (error) {
+      console.error('Error saving wallets:', error);
+    }
+  }
+  
+  getWallets() {
+    return this.wallets;
+  }
+  
+  addWallet(wallet) {
+    this.wallets.push(wallet);
+    this.saveWallets();
+  }
+  
+  updateWallet(id, updates) {
+    const index = this.wallets.findIndex(w => w.id === id);
+    if (index !== -1) {
+      this.wallets[index] = { ...this.wallets[index], ...updates };
+      this.saveWallets();
+    }
+  }
+  
+  deleteWallet(id) {
+    this.wallets = this.wallets.filter(w => w.id !== id);
+    this.saveWallets();
+  }
+  
+  getWalletBalance(walletId) {
+    const income = this.transactions
+      .reduce((sum, t) => {
+        if (t.type === 'income' && t.wallet === walletId) return sum + t.amount;
+        if (t.type === 'transfer' && t.toWallet === walletId) return sum + t.amount;
+        return sum;
+      }, 0);
+    
+    const expense = this.transactions
+      .reduce((sum, t) => {
+        if (t.type === 'expense' && t.wallet === walletId) return sum + t.amount;
+        if (t.type === 'transfer' && t.fromWallet === walletId) return sum + t.amount + (t.adminFee || 0);
+        return sum;
+      }, 0);
+    
+    return income - expense;
   }
 }
