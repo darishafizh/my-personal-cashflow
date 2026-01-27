@@ -25,6 +25,18 @@ const balanceEl = document.getElementById('balance');
 // Current filter
 let currentFilter = 'all';
 
+// Budget elements
+const budgetList = document.getElementById('budgetList');
+const btnAddBudget = document.getElementById('btnAddBudget');
+const budgetModal = document.getElementById('budgetModal');
+const budgetForm = document.getElementById('budgetForm');
+const modalTitle = document.getElementById('modalTitle');
+const btnCancelBudget = document.getElementById('btnCancelBudget');
+const modalClose = document.getElementById('modalClose');
+
+// Current budget being edited
+let currentBudgetId = null;
+
 // =========================================
 // Initialize App
 // =========================================
@@ -36,6 +48,8 @@ function init() {
   document.getElementById('transferDate').value = today;
   
   // Load and render data
+  renderBudgetSection();
+  populateExpenseBudgetDropdown();
   renderTransactions();
   updateSummary();
   updateWalletBalances();
@@ -84,6 +98,31 @@ function setupEventListeners() {
       handleDelete(id);
     }
   });
+  
+  // Budget event listeners
+  btnAddBudget.addEventListener('click', () => showBudgetForm());
+  
+  budgetForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    handleBudgetSubmit();
+  });
+  
+  btnCancelBudget.addEventListener('click', closeBudgetModal);
+  modalClose.addEventListener('click', closeBudgetModal);
+  
+  budgetModal.addEventListener('click', (e) => {
+    if (e.target === budgetModal) closeBudgetModal();
+  });
+  
+  // Budget item actions (event delegation)
+  budgetList.addEventListener('click', (e) => {
+    if (e.target.closest('.btn-edit-budget')) {
+      handleEditBudget(e.target.closest('.btn-edit-budget').dataset.id);
+    }
+    if (e.target.closest('.btn-delete-budget')) {
+      handleDeleteBudget(e.target.closest('.btn-delete-budget').dataset.id);
+    }
+  });
 }
 
 // =========================================
@@ -127,22 +166,24 @@ function handleIncomeSubmit() {
 
 function handleExpenseSubmit() {
   const amount = parseFloat(document.getElementById('expenseAmount').value);
-  const category = document.getElementById('expenseCategory').value;
-  const description = document.getElementById('expenseDesc').value.trim();
+  const budgetItemId = document.getElementById('expenseBudgetItem').value;
   const wallet = document.getElementById('expenseWallet').value;
   const date = document.getElementById('expenseDate').value;
   
-  if (!amount || !category || !description || !wallet || !date) {
+  if (!amount || !budgetItemId || !wallet || !date) {
     showToast('Lengkapin dulu datanya ya! 😅', 'error');
     return;
   }
+  
+  const budgetItem = storage.getBudgetItems().find(b => b.id === budgetItemId);
   
   const transaction = {
     id: generateId(),
     type: 'expense',
     amount,
-    category,
-    description,
+    budgetItemId,
+    budgetItemName: budgetItem ? budgetItem.name : 'Unknown',
+    description: budgetItem ? budgetItem.name : 'Unknown',
     wallet,
     date,
     createdAt: new Date().toISOString()
@@ -155,6 +196,7 @@ function handleExpenseSubmit() {
   document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
   
   // Update UI
+  renderBudgetSection();
   renderTransactions();
   updateSummary();
   updateWalletBalances();
@@ -456,3 +498,148 @@ function showToast(message, type = 'success') {
 // Start App
 // =========================================
 document.addEventListener('DOMContentLoaded', init);
+
+// =========================================
+// Budget Management Functions
+// =========================================
+function renderBudgetSection() {
+  const budgetSummary = storage.getBudgetSummary();
+  
+  if (budgetSummary.length === 0) {
+    budgetList.innerHTML = `
+      <div class="empty-state">
+        <span class="empty-icon">📊</span>
+        <p>Belum ada item budget!</p>
+        <p class="empty-subtitle">Klik tombol "Tambah Item" untuk mulai.</p>
+      </div>
+    `;
+    return;
+  }
+  
+  budgetList.innerHTML = budgetSummary.map(budget => createBudgetItemHTML(budget)).join('');
+}
+
+function createBudgetItemHTML(budget) {
+  const percentage = Math.min(budget.percentage, 100);
+  const isOverBudget = budget.spent > budget.amount && budget.amount > 0;
+  const progressClass = percentage >= 90 ? 'danger' : percentage >= 70 ? 'warning' : '';
+  
+  return `
+    <div class="budget-item">
+      <div class="budget-item-header">
+        <div class="budget-item-info">
+          <div class="budget-item-name">${escapeHTML(budget.name)}</div>
+          <div class="budget-item-amounts">
+            <div class="budget-amount">
+              <span class="budget-amount-label">Target</span>
+              <span class="budget-amount-value planned">${formatCurrency(budget.amount)}</span>
+            </div>
+            <div class="budget-amount">
+              <span class="budget-amount-label">Terpakai</span>
+              <span class="budget-amount-value spent">${formatCurrency(budget.spent)}</span>
+            </div>
+            <div class="budget-amount">
+              <span class="budget-amount-label">Sisa</span>
+              <span class="budget-amount-value ${isOverBudget ? 'over-budget' : 'remaining'}">
+                ${formatCurrency(Math.abs(budget.remaining))}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="budget-item-actions">
+          <button class="btn-icon edit btn-edit-budget" data-id="${budget.id}" title="Edit">✏️</button>
+          <button class="btn-icon delete btn-delete-budget" data-id="${budget.id}" title="Hapus">🗑️</button>
+        </div>
+      </div>
+      <div class="budget-progress">
+        <div class="budget-progress-bar-container">
+          <div class="budget-progress-bar ${progressClass}" style="width: ${percentage}%"></div>
+        </div>
+        <div class="budget-progress-text">
+          <span>${percentage.toFixed(1)}% terpakai</span>
+          ${isOverBudget ? '<span style="color: var(--danger)">⚠️ Over budget!</span>' : ''}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function populateExpenseBudgetDropdown() {
+  const budgetItems = storage.getBudgetItems();
+  const select = document.getElementById('expenseBudgetItem');
+  
+  const placeholder = select.options[0];
+  select.innerHTML = '';
+  select.appendChild(placeholder);
+  
+  budgetItems.forEach(item => {
+    const option = document.createElement('option');
+    option.value = item.id;
+    option.textContent = item.name;
+    select.appendChild(option);
+  });
+}
+
+function showBudgetForm(budgetItem = null) {
+  currentBudgetId = budgetItem ? budgetItem.id : null;
+  
+  if (budgetItem) {
+    modalTitle.textContent = 'Edit Item Budget';
+    document.getElementById('budgetName').value = budgetItem.name;
+    document.getElementById('budgetAmount').value = budgetItem.amount;
+  } else {
+    modalTitle.textContent = 'Tambah Item Budget';
+    budgetForm.reset();
+  }
+  
+  budgetModal.classList.add('show');
+}
+
+function closeBudgetModal() {
+  budgetModal.classList.remove('show');
+  budgetForm.reset();
+  currentBudgetId = null;
+}
+
+function handleBudgetSubmit() {
+  const name = document.getElementById('budgetName').value.trim();
+  const amount = parseFloat(document.getElementById('budgetAmount').value) || 0;
+  
+  if (!name) {
+    showToast('Nama item harus diisi! 😅', 'error');
+    return;
+  }
+  
+  if (currentBudgetId) {
+    storage.updateBudgetItem(currentBudgetId, { name, amount });
+    showToast('Budget item berhasil diupdate! ✅', 'success');
+  } else {
+    const budgetItem = {
+      id: 'budget_' + generateId(),
+      name,
+      amount
+    };
+    storage.addBudgetItem(budgetItem);
+    showToast('Budget item berhasil ditambahkan! ✅', 'success');
+  }
+  
+  closeBudgetModal();
+  renderBudgetSection();
+  populateExpenseBudgetDropdown();
+}
+
+function handleEditBudget(id) {
+  const budgetItem = storage.getBudgetItems().find(b => b.id === id);
+  if (budgetItem) {
+    showBudgetForm(budgetItem);
+  }
+}
+
+function handleDeleteBudget(id) {
+  if (confirm('Yakin mau hapus item budget ini?')) {
+    storage.deleteBudgetItem(id);
+    renderBudgetSection();
+    populateExpenseBudgetDropdown();
+    showToast('Budget item dihapus! 🗑️', 'success');
+  }
+}

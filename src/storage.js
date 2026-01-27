@@ -3,10 +3,12 @@
 // =========================================
 
 const STORAGE_KEY = 'cashflow_transactions';
+const BUDGET_KEY = 'cashflow_budget_items';
 
 export class StorageManager {
   constructor() {
     this.transactions = this.loadTransactions();
+    this.budgetItems = this.loadBudgetItems();
   }
   
   /**
@@ -156,5 +158,117 @@ export class StorageManager {
   clearAll() {
     this.transactions = [];
     this.saveTransactions();
+  }
+  
+  // =========================================
+  // Budget Management Methods
+  // =========================================
+  
+  /**
+   * Load budget items from localStorage
+   * @returns {Array} Array of budget items
+   */
+  loadBudgetItems() {
+    try {
+      const data = localStorage.getItem(BUDGET_KEY);
+      if (data) {
+        return JSON.parse(data);
+      }
+      // Default budget items
+      const defaultBudgets = [
+        { id: 'budget_kost', name: 'Kost', amount: 1300000 },
+        { id: 'budget_ortu', name: 'Ortu', amount: 500000 },
+        { id: 'budget_listrik', name: 'Listrik', amount: 0 },
+        { id: 'budget_bekal', name: 'Bekal', amount: 0 },
+        { id: 'budget_kebutuhan', name: 'Kebutuhan per Bulan', amount: 0 },
+        { id: 'budget_emoney', name: 'E-Money', amount: 0 },
+        { id: 'budget_tabungan', name: 'Tabungan', amount: 0 }
+      ];
+      this.budgetItems = defaultBudgets;
+      this.saveBudgetItems();
+      return defaultBudgets;
+    } catch (error) {
+      console.error('Error loading budget items:', error);
+      return [];
+    }
+  }
+  
+  /**
+   * Save budget items to localStorage
+   */
+  saveBudgetItems() {
+    try {
+      localStorage.setItem(BUDGET_KEY, JSON.stringify(this.budgetItems));
+    } catch (error) {
+      console.error('Error saving budget items:', error);
+    }
+  }
+  
+  /**
+   * Get all budget items
+   * @returns {Array} Array of budget items
+   */
+  getBudgetItems() {
+    return this.budgetItems;
+  }
+  
+  /**
+   * Add a new budget item
+   * @param {Object} budgetItem - Budget item object with name and amount
+   */
+  addBudgetItem(budgetItem) {
+    this.budgetItems.push(budgetItem);
+    this.saveBudgetItems();
+  }
+  
+  /**
+   * Update a budget item
+   * @param {string} id - Budget item ID
+   * @param {Object} updates - Fields to update
+   */
+  updateBudgetItem(id, updates) {
+    const index = this.budgetItems.findIndex(b => b.id === id);
+    if (index !== -1) {
+      this.budgetItems[index] = { ...this.budgetItems[index], ...updates };
+      this.saveBudgetItems();
+    }
+  }
+  
+  /**
+   * Delete a budget item
+   * @param {string} id - Budget item ID
+   */
+  deleteBudgetItem(id) {
+    this.budgetItems = this.budgetItems.filter(b => b.id !== id);
+    this.saveBudgetItems();
+  }
+  
+  /**
+   * Get budget summary for current month
+   * @returns {Array} Budget items with actual spending
+   */
+  getBudgetSummary() {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    
+    const monthExpenses = this.transactions.filter(t => {
+      if (t.type !== 'expense') return false;
+      const date = new Date(t.date);
+      return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+    });
+    
+    return this.budgetItems.map(budget => {
+      const spent = monthExpenses
+        .filter(t => t.budgetItemId === budget.id)
+        .reduce((sum, t) => sum + t.amount, 0);
+      
+      return {
+        ...budget,
+        spent,
+        remaining: budget.amount - spent,
+        percentage: budget.amount > 0 ? (spent / budget.amount) * 100 : 0
+      };
+    });
   }
 }

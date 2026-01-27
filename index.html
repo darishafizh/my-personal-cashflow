@@ -101,6 +101,19 @@
       </div>
     </section>
 
+    <!-- Budget Planning Section -->
+    <section class="budget-section">
+      <div class="budget-header">
+        <h2 class="section-title">📊 Perencanaan Pengeluaran</h2>
+        <button class="btn btn-add-budget" id="btnAddBudget">
+          <span>➕ Tambah Item</span>
+        </button>
+      </div>
+      <div class="budget-list" id="budgetList">
+        <!-- Budget items will be rendered here -->
+      </div>
+    </section>
+
     <!-- Main Content -->
     <main class="main-content">
       <!-- Input Forms Section -->
@@ -215,20 +228,11 @@
               </div>
             </div>
             <div class="form-group">
-              <label for="expenseCategory">Jenis Pengeluaran</label>
-              <select id="expenseCategory" required>
-                <option value="">Pilih kategori...</option>
-                <option value="kost">🏠 Kost</option>
-                <option value="kebutuhan">🛒 Kebutuhan</option>
-                <option value="harian">☕ Harian</option>
-                <option value="ortu">👨‍👩‍👧 Orang Tua</option>
-                <option value="zakat">🕌 Zakat</option>
-                <option value="lainnya">📦 Lainnya</option>
+              <label for="expenseBudgetItem">Item Pengeluaran</label>
+              <select id="expenseBudgetItem" required>
+                <option value="">Pilih item budget...</option>
+                <!-- Options will be populated from budget items -->
               </select>
-            </div>
-            <div class="form-group">
-              <label for="expenseDesc">Keterangan</label>
-              <input type="text" id="expenseDesc" placeholder="Bayar kost, Makan, dll" required>
             </div>
             <div class="form-group">
               <label for="expenseWallet">Bayar dari</label>
@@ -302,6 +306,33 @@
   <div class="toast" id="toast">
     <span class="toast-icon"></span>
     <span class="toast-message"></span>
+  </div>
+
+  <!-- Budget Edit Modal -->
+  <div class="budget-modal" id="budgetModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalTitle">Tambah Item Budget</h3>
+        <button class="modal-close" id="modalClose">×</button>
+      </div>
+      <form id="budgetForm" class="budget-form">
+        <div class="form-group">
+          <label for="budgetName">Nama Item</label>
+          <input type="text" id="budgetName" placeholder="Misal: Kost, Makan, dll" required>
+        </div>
+        <div class="form-group">
+          <label for="budgetAmount">Target Budget (per bulan)</label>
+          <div class="input-wrapper">
+            <span class="input-prefix">Rp</span>
+            <input type="number" id="budgetAmount" placeholder="1000000" required min="0">
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" id="btnCancelBudget">Batal</button>
+          <button type="submit" class="btn btn-primary">Simpan</button>
+        </div>
+      </form>
+    </div>
   </div>
 
   <script type="module" src="./src/main.js"></script>
