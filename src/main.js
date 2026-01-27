@@ -10,6 +10,66 @@ import { ChartManager } from './chart.js';
 const storage = new StorageManager();
 const chartManager = new ChartManager();
 
+// =========================================
+// Custom Alert Utility (Global)
+// =========================================
+const CustomAlert = {
+  show(type, title, msg, defaultValue = '') {
+    return new Promise((resolve) => {
+      const modal = document.getElementById('customModal');
+      const titleEl = document.getElementById('customModalTitle');
+      const msgEl = document.getElementById('customModalMessage');
+      const inputGroup = document.getElementById('customModalInputGroup');
+      const input = document.getElementById('customModalInput');
+      const btnConfirm = document.getElementById('customModalConfirm');
+      const btnCancel = document.getElementById('customModalCancel');
+
+      titleEl.textContent = title;
+      msgEl.textContent = msg;
+      
+      if (type === 'prompt') {
+        inputGroup.style.display = 'block';
+        input.value = defaultValue;
+        input.type = 'number';
+        setTimeout(() => { input.focus(); input.select(); }, 100);
+      } else {
+        inputGroup.style.display = 'none';
+      }
+
+      modal.classList.add('show');
+
+      const cleanup = () => {
+        modal.classList.remove('show');
+        btnConfirm.replaceWith(btnConfirm.cloneNode(true));
+        btnCancel.replaceWith(btnCancel.cloneNode(true));
+      };
+      
+      const newBtnConfirm = document.getElementById('customModalConfirm');
+      const newBtnCancel = document.getElementById('customModalCancel');
+
+      newBtnConfirm.addEventListener('click', () => {
+        const value = type === 'prompt' ? document.getElementById('customModalInput').value : true;
+        cleanup();
+        resolve(value);
+      }, { once: true });
+
+      newBtnCancel.addEventListener('click', () => {
+        cleanup();
+        resolve(type === 'prompt' ? null : false);
+      }, { once: true });
+      
+      if (type === 'prompt') {
+        input.onkeydown = (e) => {
+          if (e.key === 'Enter') newBtnConfirm.click();
+          if (e.key === 'Escape') newBtnCancel.click();
+        };
+      }
+    });
+  },
+  confirm(title, msg) { return this.show('confirm', title, msg); },
+  prompt(title, msg, def) { return this.show('prompt', title, msg, def); }
+};
+
 // DOM Elements
 const incomeForm = document.getElementById('incomeForm');
 const expenseForm = document.getElementById('expenseForm');
@@ -151,7 +211,25 @@ function setupEventListeners() {
     if (e.target.closest('.btn-delete-budget')) {
       handleDeleteBudget(e.target.closest('.btn-delete-budget').dataset.id);
     }
+    if (e.target.closest('.btn-use-budget')) {
+      handleUseBudget(e.target.closest('.btn-use-budget').dataset.id);
+    }
   });
+
+  // Budget Type change listener
+  const budgetType = document.getElementById('budgetType');
+  const groupTargetWallet = document.getElementById('groupTargetWallet');
+  if (budgetType && groupTargetWallet) {
+    budgetType.addEventListener('change', () => {
+      if (budgetType.value === 'transfer') {
+        groupTargetWallet.style.display = 'flex';
+        document.getElementById('budgetTargetWallet').required = true;
+      } else {
+        groupTargetWallet.style.display = 'none';
+        document.getElementById('budgetTargetWallet').required = false;
+      }
+    });
+  }
   
   // Wallet event listeners
   if (btnAddWallet) {
@@ -312,16 +390,18 @@ function handleTransferSubmit() {
   showToast('Transfer berhasil dicatat! ⚡', 'success');
 }
 
-function handleDelete(id) {
-  storage.deleteTransaction(id);
-  
-  // Update UI
-  renderTransactions();
-  updateSummary();
-  updateWalletBalances();
-  chartManager.updateCharts(storage.getTransactions());
-  
-  showToast('Transaksi dihapus! 🗑️', 'success');
+async function handleDelete(id) {
+  if (await CustomAlert.confirm('Hapus Transaksi?', 'Yakin mau hapus transaksi ini selamanya?')) {
+    storage.deleteTransaction(id);
+    
+    // Update UI
+    renderTransactions();
+    updateSummary();
+    updateWalletBalances();
+    chartManager.updateCharts(storage.getTransactions());
+    
+    showToast('Transaksi dihapus! 🗑️', 'success');
+  }
 }
 
 // =========================================
@@ -609,9 +689,22 @@ function createBudgetItemHTML(budget) {
           ${isOverBudget ? '<span style="color: var(--danger)">⚠️ Over budget!</span>' : ''}
         </div>
       </div>
-      ${budget.walletId ? `<div class="budget-source" style="margin-top: 8px; font-size: 0.8rem; color: var(--text-muted);">
+      ${budget.targetWalletId && budget.type === 'transfer' ? `<div class="budget-source" style="margin-top: 4px; font-size: 0.8rem; color: var(--text-muted);">
+        Tujuan: ${getWalletName(budget.targetWalletId)}
+      </div>` : ''}
+      ${budget.walletId ? `<div class="budget-source" style="margin-top: 4px; font-size: 0.8rem; color: var(--text-muted);">
         Sumber: ${getWalletName(budget.walletId)}
       </div>` : ''}
+      <div style="margin-top: 12px;">
+        ${percentage >= 100 
+          ? `<button class="btn btn-secondary btn-sm" disabled style="width: 100%; justify-content: center; font-size: 0.9rem; padding: 8px; opacity: 0.5; cursor: not-allowed;">
+              ✅ Budget Habis
+            </button>`
+          : `<button class="btn btn-primary btn-sm btn-use-budget" data-id="${budget.id}" style="width: 100%; justify-content: center; font-size: 0.9rem; padding: 8px;">
+              ⚡ Gunakan Budget
+            </button>`
+        }
+      </div>
     </div>
   `;
 }
@@ -627,6 +720,22 @@ function showBudgetForm(budgetItem = null) {
     document.getElementById('budgetAmount').value = budgetItem.amount;
     if (document.getElementById('budgetWallet')) {
       document.getElementById('budgetWallet').value = budgetItem.walletId || '';
+    }
+    
+    // Set type and target wallet
+    const typeSelect = document.getElementById('budgetType');
+    const targetSelect = document.getElementById('budgetTargetWallet');
+    const groupTarget = document.getElementById('groupTargetWallet');
+    
+    if (typeSelect) {
+      typeSelect.value = budgetItem.type || 'expense';
+      // Trigger change event to update UI
+      if (budgetItem.type === 'transfer') {
+        groupTarget.style.display = 'block';
+        if (targetSelect) targetSelect.value = budgetItem.targetWalletId || '';
+      } else {
+        groupTarget.style.display = 'none';
+      }
     }
   } else {
     modalTitle.textContent = 'Tambah Item Budget';
@@ -647,20 +756,37 @@ function handleBudgetSubmit() {
   const amount = parseFloat(document.getElementById('budgetAmount').value) || 0;
   const walletId = document.getElementById('budgetWallet') ? document.getElementById('budgetWallet').value : null;
   
+  const type = document.getElementById('budgetType').value;
+  let targetWalletId = null;
+  
+  if (type === 'transfer') {
+    targetWalletId = document.getElementById('budgetTargetWallet').value;
+    if (!targetWalletId) {
+      showToast('Dompet tujuan harus dipilih untuk transfer!', 'error');
+      return;
+    }
+    if (walletId === targetWalletId) {
+      showToast('Dompet asal dan tujuan tidak boleh sama!', 'error');
+      return;
+    }
+  }
+  
   if (!name) {
     showToast('Nama item harus diisi! 😅', 'error');
     return;
   }
   
   if (currentBudgetId) {
-    storage.updateBudgetItem(currentBudgetId, { name, amount, walletId });
+    storage.updateBudgetItem(currentBudgetId, { name, amount, walletId, type, targetWalletId });
     showToast('Budget item berhasil diupdate! ✅', 'success');
   } else {
     const budgetItem = {
       id: 'budget_' + generateId(),
       name,
       amount,
-      walletId
+      walletId,
+      type,
+      targetWalletId
     };
     storage.addBudgetItem(budgetItem);
     showToast('Budget item berhasil ditambahkan! ✅', 'success');
@@ -677,12 +803,87 @@ function handleEditBudget(id) {
   }
 }
 
-function handleDeleteBudget(id) {
-  if (confirm('Yakin mau hapus item budget ini?')) {
+async function handleDeleteBudget(id) {
+  if (await CustomAlert.confirm('Hapus Budget?', 'Yakin mau hapus item budget ini?')) {
     storage.deleteBudgetItem(id);
     renderBudgetSection();
     showToast('Budget item dihapus! 🗑️', 'success');
   }
+}
+
+async function handleUseBudget(id) {
+  const budgetItem = storage.getBudgetItems().find(b => b.id === id);
+  if (!budgetItem) return;
+  
+  // Prompt user for amount
+  const defaultAmount = Math.max(0, budgetItem.amount - (budgetItem.spent || 0));
+  
+  const amountStr = await CustomAlert.prompt(
+    'Gunakan Budget', 
+    `Masukkan jumlah untuk "${budgetItem.name}":`,
+    defaultAmount
+  );
+  
+  if (amountStr === null) return; // Cancelled
+  
+  const amount = parseFloat(amountStr);
+  if (isNaN(amount) || amount <= 0) {
+    showToast('Jumlah tidak valid! 😅', 'error');
+    return;
+  }
+  
+  const today = new Date().toISOString().split('T')[0];
+  
+  let transaction;
+  
+  if (budgetItem.type === 'transfer') {
+    if (!budgetItem.walletId || !budgetItem.targetWalletId) {
+      showToast('Data dompet budget tidak lengkap! Edit dulu ya.', 'error');
+      return;
+    }
+    
+    transaction = {
+      id: generateId(),
+      type: 'transfer',
+      amount,
+      adminFee: 0,
+      fromWallet: budgetItem.walletId,
+      toWallet: budgetItem.targetWalletId,
+      description: `Budget Transfer: ${budgetItem.name}`,
+      date: today,
+      createdAt: new Date().toISOString()
+    };
+  } else {
+    // Expense
+    if (!budgetItem.walletId) {
+      showToast('Sumber dana belum diset! Edit budget dulu ya.', 'error');
+      return;
+    }
+    
+    transaction = {
+      id: generateId(),
+      type: 'expense',
+      amount,
+      budgetItemId: budgetItem.id,
+      budgetItemName: budgetItem.name,
+      category: 'budget', 
+      wallet: budgetItem.walletId,
+      description: `Budget: ${budgetItem.name}`,
+      date: today,
+      createdAt: new Date().toISOString()
+    };
+  }
+  
+  storage.addTransaction(transaction);
+  
+  // Update UI
+  renderBudgetSection();
+  renderTransactions();
+  updateSummary();
+  updateWalletBalances();
+  chartManager.updateCharts(storage.getTransactions());
+  
+  showToast('Transaksi budget berhasil dicatat! ⚡', 'success');
 }
 
 // =========================================
@@ -727,7 +928,7 @@ function renderWalletSection() {
 
 function populateWalletDropdowns() {
   const wallets = storage.getWallets();
-  const selects = ['incomeWallet', 'expenseWallet', 'transferFrom', 'transferTo', 'budgetWallet'];
+  const selects = ['incomeWallet', 'expenseWallet', 'transferFrom', 'transferTo', 'budgetWallet', 'budgetTargetWallet'];
   
   selects.forEach(id => {
     const select = document.getElementById(id);

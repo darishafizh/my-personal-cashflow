@@ -321,9 +321,23 @@
           </div>
         </div>
         <div class="form-group">
-          <label for="budgetWallet">Sumber Dana (Opsional)</label>
-          <select id="budgetWallet">
+          <label for="budgetType">Tipe Budget</label>
+          <select id="budgetType" required>
+            <option value="expense">📉 Pengeluaran</option>
+            <option value="transfer">🔄 Transfer</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="budgetWallet">Sumber Dana</label>
+          <select id="budgetWallet" required>
             <option value="">Pilih dompet...</option>
+            <!-- Dynamic wallet options -->
+          </select>
+        </div>
+        <div class="form-group" id="groupTargetWallet" style="display: none;">
+          <label for="budgetTargetWallet">Ke Dompet (Khusus Transfer)</label>
+          <select id="budgetTargetWallet">
+            <option value="">Pilih dompet tujuan...</option>
             <!-- Dynamic wallet options -->
           </select>
         </div>
@@ -332,6 +346,26 @@
           <button type="submit" class="btn btn-primary">Simpan</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Custom Generic Modal -->
+  <div class="budget-modal" id="customModal" style="z-index: 2000;">
+    <div class="modal-content" style="max-width: 400px;">
+      <div class="modal-header">
+        <h3 id="customModalTitle">Konfirmasi</h3>
+      </div>
+      <div class="modal-body">
+        <p id="customModalMessage" style="color: var(--text-secondary); margin-bottom: 1.5rem;">Pesan konfirmasi...</p>
+        
+        <div id="customModalInputGroup" class="form-group" style="display: none;">
+          <input type="text" id="customModalInput" placeholder="Masukkan data...">
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button id="customModalCancel" class="btn btn-secondary">Batal</button>
+        <button id="customModalConfirm" class="btn btn-primary">Ya, Lanjutkan</button>
+      </div>
     </div>
   </div>
 

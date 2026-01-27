@@ -1380,3 +1380,114 @@ select option {
   gap: var(--space-xs);
   white-space: nowrap;
 }
+
+/* =========================================
+   Custom Modal Styles (Enhanced)
+   ========================================= */
+
+#customModal .modal-content {
+  text-align: center;
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+#customModal .modal-header {
+  justify-content: center;
+  margin-bottom: var(--space-md);
+}
+
+#customModal .modal-header h3 {
+  font-size: var(--font-size-xl);
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+#customModal .modal-body {
+  margin-bottom: var(--space-lg);
+}
+
+#customModalMessage {
+  font-size: var(--font-size-base);
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+
+#customModalInputGroup {
+  margin-top: var(--space-md);
+}
+
+#customModalInput {
+  background: rgba(255, 255, 255, 0.08);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  color: var(--text-primary);
+  padding: var(--space-md) var(--space-lg);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+#customModalInput:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px var(--primary-glow), 0 0 20px var(--primary-glow);
+  outline: none;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+#customModal .modal-actions {
+  display: flex;
+  gap: var(--space-md);
+  justify-content: center;
+}
+
+#customModal .modal-actions .btn {
+  flex: 1;
+  padding: var(--space-md) var(--space-lg);
+  font-weight: 600;
+  border-radius: var(--radius-lg);
+}
+
+#customModalConfirm {
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  box-shadow: 0 4px 15px var(--primary-glow);
+}
+
+#customModalConfirm:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px var(--primary-glow);
+}
+
+#customModalCancel {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+#customModalCancel:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  #customModal .modal-content {
+    width: 95%;
+    padding: var(--space-lg);
+  }
+  
+  #customModal .modal-actions {
+    flex-direction: column-reverse;
+  }
+}
