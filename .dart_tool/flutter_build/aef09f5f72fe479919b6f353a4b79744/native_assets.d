@@ -1,0 +1,1 @@
+ C:\\Development\\Cashflow\\.dart_tool\\flutter_build\\aef09f5f72fe479919b6f353a4b79744\\native_assets.yaml: 
