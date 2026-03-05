@@ -130,29 +130,16 @@ class StorageService {
   }
 
   List<BudgetSummary> getBudgetSummary() {
-    final now = DateTime.now();
-    final currentMonth = now.month;
-    final currentYear = now.year;
-
-    final monthExpenses = _transactions.where((t) {
-      if (t.type != 'expense') return false;
-      final d = DateTime.tryParse(t.date);
-      return d != null && d.month == currentMonth && d.year == currentYear;
-    }).toList();
-
-    final monthTransfers = _transactions.where((t) {
-      if (t.type != 'transfer') return false;
-      final d = DateTime.tryParse(t.date);
-      return d != null && d.month == currentMonth && d.year == currentYear;
-    }).toList();
+    final allExpenses = _transactions.where((t) => t.type == 'expense').toList();
+    final allTransfers = _transactions.where((t) => t.type == 'transfer').toList();
 
     return _budgetItems.map((budget) {
-      double expSpent = monthExpenses
+      double expSpent = allExpenses
           .where((t) => t.budgetItemId == budget.id)
           .fold(0.0, (sum, t) => sum + t.amount);
 
-      double trSpent = monthTransfers
-          .where((t) => t.description.contains(budget.name))
+      double trSpent = allTransfers
+          .where((t) => t.budgetItemId == budget.id)
           .fold(0.0, (sum, t) => sum + t.amount);
 
       final spent = expSpent + trSpent;

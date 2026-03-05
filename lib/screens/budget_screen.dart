@@ -476,6 +476,8 @@ class _BudgetScreenState extends State<BudgetScreen> {
                   adminFee: 0,
                   fromWallet: bs.budget.walletId,
                   toWallet: bs.budget.targetWalletId,
+                  budgetItemId: bs.budget.id,
+                  budgetItemName: bs.budget.name,
                   description: 'Budget Transfer: ${bs.budget.name}',
                   date: today,
                   createdAt: DateTime.now().toIso8601String(),
