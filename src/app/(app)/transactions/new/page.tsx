@@ -1,9 +1,6 @@
 'use client';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCreateTransaction } from '@/hooks/use-transactions';
 import { useWallets } from '@/hooks/use-wallets';
@@ -14,7 +11,7 @@ import { ArrowLeft, Save } from 'lucide-react';
 import type { TransactionType } from '@/lib/supabase/types';
 import { todayString } from '@/lib/utils';
 
-export default function NewTransactionPage() {
+function NewTransactionForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialType = (searchParams.get('type') || 'expense') as TransactionType;
@@ -232,5 +229,17 @@ export default function NewTransactionPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function NewTransactionPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-dvh bg-background">
+        <div className="animate-pulse text-text-muted">Memuat formulir...</div>
+      </div>
+    }>
+      <NewTransactionForm />
+    </Suspense>
   );
 }
