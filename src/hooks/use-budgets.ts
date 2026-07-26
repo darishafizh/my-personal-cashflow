@@ -2,10 +2,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import type { Budget, BudgetInput } from '@/lib/supabase/types';
 
-export function useBudgets(month: number, year: number) {
+export function useBudgets(month?: number, year?: number) {
+  const now = new Date();
+  const m = month ?? now.getMonth() + 1;
+  const y = year ?? now.getFullYear();
   return useQuery<Budget[]>({
-    queryKey: ['budgets', month, year],
-    queryFn: () => api.get<Budget[]>('/budgets', { month, year }),
+    queryKey: ['budgets', m, y],
+    queryFn: () => api.get<Budget[]>('/budgets', { month: m, year: y }),
   });
 }
 
