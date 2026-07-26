@@ -19,7 +19,8 @@ export default function NewTransactionPage() {
   const { mutate: createTransaction, isPending } = useCreateTransaction();
   const { data: wallets } = useWallets();
   const { data: allCategories } = useCategories();
-  const { data: allBudgets } = useBudgets();
+  const now = new Date();
+  const { data: allBudgets } = useBudgets(now.getMonth() + 1, now.getFullYear());
 
   const [type, setType] = useState<TransactionType>(initialType);
   const [amount, setAmount] = useState(0);
