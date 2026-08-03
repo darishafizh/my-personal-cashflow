@@ -121,6 +121,7 @@ export interface WalletInput {
   icon?: string;
   color?: string;
   initial_balance?: number;
+  balance?: number;
 }
 
 export interface TransactionInput {
