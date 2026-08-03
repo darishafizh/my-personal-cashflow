@@ -27,18 +27,21 @@ export default function WalletsPage() {
           <h1 className="text-2xl font-bold text-text-primary mb-1">Dompet</h1>
           <p className="text-sm text-text-muted">Kelola akun dan saldo Anda</p>
         </div>
-        <button
-          onClick={() => setIsCreateModalOpen(true)}
-          className="btn-gradient-primary w-10 h-10 rounded-full flex items-center justify-center shadow-lg"
-          aria-label="Tambah Dompet"
-        >
-          <Plus size={20} />
-        </button>
       </div>
 
       <div className="glass p-5 flex flex-col gap-1">
         <span className="text-sm text-text-secondary">Total Saldo Semua Dompet</span>
         <span className="text-2xl font-bold tabular-nums text-white">{formatCurrency(totalBalance)}</span>
+      </div>
+
+      <div className="flex justify-between items-center pt-2">
+        <h2 className="font-semibold">Daftar Dompet</h2>
+        <button 
+          onClick={() => setIsCreateModalOpen(true)}
+          className="text-sm font-medium text-primary flex items-center gap-1 bg-primary/10 px-3 py-1.5 rounded-full"
+        >
+          <Plus size={16} /> Tambah
+        </button>
       </div>
 
       <div className="space-y-3">
@@ -176,6 +179,7 @@ function EditWalletModal({ wallet, isOpen, onClose }: { wallet: Wallet; isOpen: 
   
   const [name, setName] = useState(wallet.name);
   const [type, setType] = useState<WalletType>(wallet.type);
+  const [balance, setBalance] = useState(wallet.balance);
   const [showConfirm, setShowConfirm] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -187,7 +191,7 @@ function EditWalletModal({ wallet, isOpen, onClose }: { wallet: Wallet; isOpen: 
     if (type === 'cash') icon = '💵';
 
     updateWallet(
-      { id: wallet.id, data: { name, type, icon } },
+      { id: wallet.id, data: { name, type, icon, balance } },
       { onSuccess: onClose }
     );
   };
@@ -240,6 +244,13 @@ function EditWalletModal({ wallet, isOpen, onClose }: { wallet: Wallet; isOpen: 
             ))}
           </div>
         </div>
+
+        <CurrencyInput
+          label="Saldo Saat Ini"
+          value={balance}
+          onChange={setBalance}
+          placeholder="0"
+        />
 
         <div className="pt-4 flex gap-3">
           <button

@@ -6,12 +6,25 @@ import { formatCurrency, formatDate, getTransactionMeta } from '@/lib/utils';
 import LoadingSkeleton from '@/components/ui/loading-skeleton';
 import EmptyState from '@/components/ui/empty-state';
 import Link from 'next/link';
+import { Trash2 } from 'lucide-react';
+import { useDeleteTransaction } from '@/hooks/use-transactions';
+import ConfirmDialog from '@/components/ui/confirm-dialog';
 
 import type { Transaction } from '@/lib/supabase/types';
 
 export default function TransactionsPage() {
   const [filterType, setFilterType] = useState<string>('');
+  const [deleteTxId, setDeleteTxId] = useState<string | null>(null);
   const { data, isLoading } = useTransactions({ type: filterType || undefined });
+  const { mutate: deleteTransaction } = useDeleteTransaction();
+
+  const handleDelete = () => {
+    if (deleteTxId) {
+      deleteTransaction(deleteTxId, {
+        onSuccess: () => setDeleteTxId(null)
+      });
+    }
+  };
 
   return (
     <div className="p-4 space-y-4 animate-fade-in pb-20">
@@ -79,17 +92,36 @@ export default function TransactionsPage() {
                           </div>
                           <div className="min-w-0">
                             <div className="font-medium text-text-primary truncate">
-                              {tx.category?.name || tx.description || meta.label}
+                              {tx.description || tx.category?.name || meta.label}
                             </div>
                             <div className="text-xs text-text-muted truncate">
                               {tx.wallet?.name} {tx.destination_wallet && `→ ${tx.destination_wallet.name}`}
                             </div>
                           </div>
                         </div>
-                        <div className={`font-semibold tabular-nums text-right whitespace-nowrap pl-2 ${
-                          tx.type === 'income' ? 'text-success' : 'text-text-primary'
-                        }`}>
-                          {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
+                        <div className="flex items-center gap-2">
+                          <div className={`font-semibold tabular-nums text-right whitespace-nowrap pl-2 ${
+                            tx.type === 'income' ? 'text-success' : 
+                            tx.type === 'expense' ? 'text-danger' : 
+                            'text-warning'
+                          }`}>
+                            {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
+                            {tx.type === 'transfer' && tx.admin_fee > 0 && (
+                              <div className="text-[10px] text-text-muted mt-0.5 font-normal">
+                                + {formatCurrency(tx.admin_fee)} admin
+                              </div>
+                            )}
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setDeleteTxId(tx.id);
+                            }}
+                            className="p-1.5 text-text-muted hover:text-danger hover:bg-danger/10 rounded-md transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                            title="Hapus Transaksi"
+                          >
+                            <Trash2 size={16} />
+                          </button>
                         </div>
                       </div>
                     );
@@ -100,6 +132,15 @@ export default function TransactionsPage() {
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={!!deleteTxId}
+        onClose={() => setDeleteTxId(null)}
+        onConfirm={handleDelete}
+        title="Hapus Transaksi?"
+        message="Yakin ingin menghapus transaksi ini? Saldo dompet dan sisa budget Anda akan disesuaikan kembali secara otomatis."
+        confirmText="Ya, Hapus"
+      />
     </div>
   );
 }

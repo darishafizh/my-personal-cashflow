@@ -15,27 +15,7 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
       .eq('id', id)
       .single();
 
-    if (tx) {
-      // Revert source wallet
-      const { data: sourceWallet } = await supabase.from('wallets').select('balance').eq('id', tx.wallet_id).single();
-      if (sourceWallet) {
-        let newSourceBalance = sourceWallet.balance;
-        if (tx.type === 'expense') newSourceBalance += tx.amount;
-        else if (tx.type === 'income') newSourceBalance -= tx.amount;
-        else if (tx.type === 'transfer') {
-          newSourceBalance += (tx.amount + (tx.admin_fee || 0));
-          
-          // Revert destination wallet
-          if (tx.destination_wallet_id) {
-            const { data: destWallet } = await supabase.from('wallets').select('balance').eq('id', tx.destination_wallet_id).single();
-            if (destWallet) {
-              await supabase.from('wallets').update({ balance: destWallet.balance - tx.amount }).eq('id', tx.destination_wallet_id);
-            }
-          }
-        }
-        await supabase.from('wallets').update({ balance: newSourceBalance }).eq('id', tx.wallet_id);
-      }
-    }
+    // (Wallet balances are reverted automatically via Supabase Database Triggers)
 
     const { error } = await supabase
       .from('transactions')
@@ -58,39 +38,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
 
     // 1. Fetch old transaction to revert
     const { data: oldTx } = await supabase.from('transactions').select('*').eq('id', id).single();
-    if (oldTx) {
-      // Revert old transaction
-      const { data: sourceWallet } = await supabase.from('wallets').select('balance').eq('id', oldTx.wallet_id).single();
-      if (sourceWallet) {
-        let revertBal = sourceWallet.balance;
-        if (oldTx.type === 'expense') revertBal += oldTx.amount;
-        else if (oldTx.type === 'income') revertBal -= oldTx.amount;
-        else if (oldTx.type === 'transfer') {
-          revertBal += (oldTx.amount + (oldTx.admin_fee || 0));
-          if (oldTx.destination_wallet_id) {
-            const { data: destWallet } = await supabase.from('wallets').select('balance').eq('id', oldTx.destination_wallet_id).single();
-            if (destWallet) await supabase.from('wallets').update({ balance: destWallet.balance - oldTx.amount }).eq('id', oldTx.destination_wallet_id);
-          }
-        }
-        await supabase.from('wallets').update({ balance: revertBal }).eq('id', oldTx.wallet_id);
-      }
-    }
-
-    // 2. Apply new transaction logic
-    const { data: newSourceWallet } = await supabase.from('wallets').select('balance').eq('id', body.wallet_id).single();
-    if (newSourceWallet) {
-      let applyBal = newSourceWallet.balance;
-      if (body.type === 'expense') applyBal -= body.amount;
-      else if (body.type === 'income') applyBal += body.amount;
-      else if (body.type === 'transfer') {
-        applyBal -= (body.amount + (body.admin_fee || 0));
-        if (body.destination_wallet_id) {
-          const { data: destWallet } = await supabase.from('wallets').select('balance').eq('id', body.destination_wallet_id).single();
-          if (destWallet) await supabase.from('wallets').update({ balance: destWallet.balance + body.amount }).eq('id', body.destination_wallet_id);
-        }
-      }
-      await supabase.from('wallets').update({ balance: applyBal }).eq('id', body.wallet_id);
-    }
+    // (Wallet balances are automatically updated via Supabase Database Triggers on UPDATE)
 
     const { data, error } = await supabase
       .from('transactions')

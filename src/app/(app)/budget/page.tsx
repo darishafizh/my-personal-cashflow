@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useBudgets, useCreateBudget, useUpdateBudget, useDeleteBudget } from '@/hooks/use-budgets';
 import { useCategories } from '@/hooks/use-categories';
-import { formatCurrency, formatCompactCurrency, getMonthName } from '@/lib/utils';
+import { formatCurrency, getMonthName } from '@/lib/utils';
 import LoadingSkeleton from '@/components/ui/loading-skeleton';
 import EmptyState from '@/components/ui/empty-state';
 import ProgressBar from '@/components/ui/progress-bar';
@@ -67,7 +67,7 @@ export default function BudgetPage() {
             <h3 className="text-sm text-text-secondary mb-1">Total Pengeluaran Budget</h3>
             <div className="flex items-baseline gap-2 mb-4">
               <span className="text-2xl font-bold text-white tabular-nums">{formatCurrency(totalSpent)}</span>
-              <span className="text-sm text-text-muted">/ {formatCompactCurrency(totalBudget)}</span>
+              <span className="text-sm text-text-muted">/ {formatCurrency(totalBudget)}</span>
             </div>
             <ProgressBar percentage={overallPercentage} showLabel />
           </div>
@@ -121,11 +121,11 @@ export default function BudgetPage() {
                       </div>
                       <div className="text-right">
                         <div className="font-semibold tabular-nums text-sm text-white">
-                          {formatCompactCurrency(budget.spent || 0)}
+                          {formatCurrency(budget.spent || 0)}
                         </div>
-                        <div className="text-xs text-text-muted tabular-nums">
-                          dari {formatCompactCurrency(budget.limit_amount)}
-                        </div>
+                        <span className="text-xs text-text-muted">
+                          dari {formatCurrency(budget.limit_amount)}
+                        </span>
                       </div>
                     </div>
                     

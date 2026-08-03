@@ -23,8 +23,12 @@ export async function GET(_request: Request, { params }: RouteParams) {
       .select('*')
       .eq('debt_id', id)
       .order('paid_at', { ascending: false });
+    // Compute status dynamically
+    let computedStatus = 'belum_lunas';
+    if (debt.remaining_amount === 0) computedStatus = 'lunas';
+    else if (debt.remaining_amount < debt.total_amount) computedStatus = 'sebagian';
 
-    return NextResponse.json({ ...debt, payments: payments || [] });
+    return NextResponse.json({ ...debt, status: computedStatus, payments: payments || [] });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Failed to fetch debt';
     return NextResponse.json({ error: message }, { status: 500 });
@@ -37,11 +41,24 @@ export async function PUT(request: Request, { params }: RouteParams) {
     const body = await request.json();
     const supabase = createServerClient();
 
+    const { data: existingDebt, error: fetchError } = await supabase
+      .from('debts')
+      .select('total_amount, remaining_amount')
+      .eq('id', id)
+      .single();
+      
+    if (fetchError) throw fetchError;
+
+    const paidAmount = Number(existingDebt.total_amount) - Number(existingDebt.remaining_amount);
+    let newRemainingAmount = Number(body.total_amount) - paidAmount;
+    if (newRemainingAmount < 0) newRemainingAmount = 0;
+
     const { data, error } = await supabase
       .from('debts')
       .update({
         person_name: body.person_name,
         total_amount: body.total_amount,
+        remaining_amount: newRemainingAmount,
         description: body.description,
         due_date: body.due_date,
         updated_at: new Date().toISOString(),

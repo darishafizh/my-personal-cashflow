@@ -152,10 +152,12 @@ export interface DebtInput {
   total_amount: number;
   description?: string;
   due_date?: string;
+  wallet_id?: string;
 }
 
 export interface DebtPaymentInput {
   amount: number;
   note?: string;
   paid_at: string;
+  wallet_id?: string;
 }

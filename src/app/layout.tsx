@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import Providers from './providers';
+import { ToastProvider } from "@/contexts/toast-context";
 
 export const metadata: Metadata = {
   title: 'CashFlow — Kelola Keuangan Pribadi',
@@ -32,11 +33,13 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
       </head>
       <body className="min-h-dvh flex flex-col relative">
-        <Providers>
-          <div className="relative z-10 flex flex-col min-h-dvh">
-            {children}
-          </div>
-        </Providers>
+        <ToastProvider>
+          <Providers>
+            <div className="relative z-10 flex flex-col min-h-dvh">
+              {children}
+            </div>
+          </Providers>
+        </ToastProvider>
         <ServiceWorkerRegister />
       </body>
     </html>

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import type { Transaction, TransactionInput } from '@/lib/supabase/types';
+import { useToast } from '@/contexts/toast-context';
 
 interface TransactionsResponse {
   data: Transaction[];
@@ -40,6 +41,7 @@ export function useTransactions(filters: TransactionFilters = {}) {
 
 export function useCreateTransaction() {
   const queryClient = useQueryClient();
+  const { success, error } = useToast();
   return useMutation({
     mutationFn: (data: TransactionInput) => api.post<Transaction>('/transactions', data),
     onSuccess: () => {
@@ -47,12 +49,15 @@ export function useCreateTransaction() {
       queryClient.invalidateQueries({ queryKey: ['wallets'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      success('Mantap! Transaksi berhasil dicatat.');
     },
+    onError: () => error('Ups, gagal mencatat transaksi. Coba lagi ya.'),
   });
 }
 
 export function useDeleteTransaction() {
   const queryClient = useQueryClient();
+  const { success, error } = useToast();
   return useMutation({
     mutationFn: (id: string) => api.delete(`/transactions/${id}`),
     onSuccess: () => {
@@ -60,6 +65,8 @@ export function useDeleteTransaction() {
       queryClient.invalidateQueries({ queryKey: ['wallets'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      success('Transaksi berhasil dihapus.');
     },
+    onError: () => error('Gagal menghapus transaksi.'),
   });
 }

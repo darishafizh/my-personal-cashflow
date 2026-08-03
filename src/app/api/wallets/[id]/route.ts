@@ -37,6 +37,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
         type: body.type,
         icon: body.icon,
         color: body.color,
+        ...(body.balance !== undefined ? { balance: Number(body.balance) } : {}),
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)

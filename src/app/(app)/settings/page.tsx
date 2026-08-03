@@ -18,16 +18,16 @@ export default function SettingsPage() {
 
   const menuItems = [
     {
-      title: 'Hutang & Piutang',
-      icon: <CreditCard className="text-warning" size={20} />,
-      href: '/debts',
-      description: 'Catat dan kelola pinjaman',
+      title: 'Hutang Saya',
+      icon: <CreditCard className="text-danger" size={20} />,
+      href: '/debts?type=hutang',
+      description: 'Catat dan kelola hutang Anda',
     },
     {
-      title: 'Kategori',
-      icon: <Tags className="text-primary" size={20} />,
-      href: '/categories',
-      description: 'Atur kategori transaksi',
+      title: 'Piutang',
+      icon: <CreditCard className="text-success" size={20} />,
+      href: '/debts?type=piutang',
+      description: 'Catat uang Anda di orang lain',
     },
   ];
 

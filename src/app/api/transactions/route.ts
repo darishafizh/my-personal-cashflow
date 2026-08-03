@@ -72,46 +72,7 @@ export async function POST(request: Request) {
 
     if (error) throw error;
 
-    // UPDATE WALLET BALANCES MANUALLY
-    // 1. Get current wallet
-    const { data: sourceWallet } = await supabase
-      .from('wallets')
-      .select('balance')
-      .eq('id', body.wallet_id)
-      .single();
-
-    if (sourceWallet) {
-      let newSourceBalance = sourceWallet.balance;
-      
-      if (body.type === 'expense') {
-        newSourceBalance -= body.amount;
-      } else if (body.type === 'income') {
-        newSourceBalance += body.amount;
-      } else if (body.type === 'transfer') {
-        newSourceBalance -= (body.amount + (body.admin_fee || 0));
-        
-        // Update destination wallet
-        if (body.destination_wallet_id) {
-          const { data: destWallet } = await supabase
-            .from('wallets')
-            .select('balance')
-            .eq('id', body.destination_wallet_id)
-            .single();
-            
-          if (destWallet) {
-            await supabase
-              .from('wallets')
-              .update({ balance: destWallet.balance + body.amount })
-              .eq('id', body.destination_wallet_id);
-          }
-        }
-      }
-
-      await supabase
-        .from('wallets')
-        .update({ balance: newSourceBalance })
-        .eq('id', body.wallet_id);
-    }
+    // (Wallet balances are automatically updated via Supabase Database Triggers)
 
     return NextResponse.json(data, { status: 201 });
   } catch (err: unknown) {

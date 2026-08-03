@@ -4,7 +4,6 @@ import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCreateTransaction } from '@/hooks/use-transactions';
 import { useWallets } from '@/hooks/use-wallets';
-import { useCategories } from '@/hooks/use-categories';
 import { useBudgets } from '@/hooks/use-budgets';
 import CurrencyInput from '@/components/ui/currency-input';
 import { ArrowLeft, Save } from 'lucide-react';
@@ -18,7 +17,6 @@ function NewTransactionForm() {
 
   const { mutate: createTransaction, isPending } = useCreateTransaction();
   const { data: wallets } = useWallets();
-  const { data: allCategories } = useCategories();
   const now = new Date();
   const { data: allBudgets } = useBudgets(now.getMonth() + 1, now.getFullYear());
 
@@ -27,26 +25,17 @@ function NewTransactionForm() {
   const [adminFee, setAdminFee] = useState(0);
   const [walletId, setWalletId] = useState('');
   const [destinationWalletId, setDestinationWalletId] = useState('');
-  const [categoryId, setCategoryId] = useState('');
   const [budgetId, setBudgetId] = useState('');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(todayString());
-
-  const categories = allCategories?.filter(c => c.type === type) || [];
   const activeBudgets = allBudgets?.filter(b => b.budget_type === type) || [];
 
-  // Auto-select first wallet and category if available
+  // Auto-select first wallet if available
   useEffect(() => {
     if (wallets?.length && !walletId) {
       setWalletId(wallets[0].id);
     }
   }, [wallets, walletId]);
-
-  useEffect(() => {
-    if (categories.length && !categoryId) {
-      setCategoryId(categories[0].id);
-    }
-  }, [type, categories, categoryId]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,7 +49,6 @@ function NewTransactionForm() {
         admin_fee: type === 'transfer' ? adminFee : 0,
         wallet_id: walletId,
         destination_wallet_id: type === 'transfer' ? destinationWalletId : undefined,
-        category_id: type !== 'transfer' ? categoryId : undefined,
         budget_id: budgetId || undefined,
         description,
         date,
@@ -97,7 +85,6 @@ function NewTransactionForm() {
                 type="button"
                 onClick={() => {
                   setType(t.id as TransactionType);
-                  setCategoryId('');
                 }}
                 className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
                   type === t.id 
@@ -126,7 +113,7 @@ function NewTransactionForm() {
             />
           )}
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className={type === 'transfer' ? "grid grid-cols-2 gap-4" : "grid grid-cols-1 gap-4"}>
             <div>
               <label className="block text-sm font-medium text-text-secondary mb-1.5">
                 {type === 'transfer' ? 'Dari Dompet' : 'Dompet'}
@@ -155,31 +142,14 @@ function NewTransactionForm() {
                 >
                   <option value="" disabled>Pilih Dompet</option>
                   {wallets?.map(w => (
-                    <option key={w.id} value={w.id} disabled={w.id === walletId}>{w.name}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {type !== 'transfer' && (
-              <div>
-                <label className="block text-sm font-medium text-text-secondary mb-1.5">Kategori</label>
-                <select
-                  value={categoryId}
-                  onChange={e => setCategoryId(e.target.value)}
-                  className="input-dark appearance-none"
-                  required
-                >
-                  <option value="" disabled>Pilih Kategori</option>
-                  {categories.map(c => (
-                    <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
+                     <option key={w.id} value={w.id} disabled={w.id === walletId}>{w.name}</option>
                   ))}
                 </select>
               </div>
             )}
           </div>
 
-          {(type === 'expense' || type === 'transfer') && (
+          {type === 'expense' && (
             <div>
               <label className="block text-sm font-medium text-text-secondary mb-1.5">Masukkan ke Budget (Opsional)</label>
               <select
@@ -207,19 +177,21 @@ function NewTransactionForm() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-text-secondary mb-1.5">Catatan (Opsional)</label>
-            <textarea
+            <label className="block text-sm font-medium text-text-secondary mb-1.5">Nama Transaksi</label>
+            <input
+              type="text"
               value={description}
               onChange={e => setDescription(e.target.value)}
-              className="input-dark resize-none h-20"
-              placeholder="Tambahkan detail transaksi..."
+              className="input-dark"
+              placeholder="Mis: Makan Siang, Gaji, dll"
+              required
             />
           </div>
 
           <div className="pt-4 pb-8">
             <button
               type="submit"
-              disabled={isPending || amount <= 0 || !walletId || (type === 'transfer' && !destinationWalletId)}
+              disabled={isPending || amount <= 0 || !walletId || (type === 'transfer' && !destinationWalletId) || !description.trim()}
               className="w-full btn-gradient-primary py-4 flex items-center justify-center gap-2"
             >
               <Save size={20} />

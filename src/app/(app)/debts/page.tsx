@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useDebts, useCreateDebt } from '@/hooks/use-debts';
 import { formatCurrency, formatDate, getDebtStatusLabel, getDebtStatusColor } from '@/lib/utils';
 import LoadingSkeleton from '@/components/ui/loading-skeleton';
@@ -8,13 +8,22 @@ import EmptyState from '@/components/ui/empty-state';
 import Modal from '@/components/ui/modal';
 import CurrencyInput from '@/components/ui/currency-input';
 import { Plus, ArrowLeft, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import type { DebtType } from '@/lib/supabase/types';
+import { useWallets } from '@/hooks/use-wallets';
 import Link from 'next/link';
 
-export default function DebtsPage() {
+function DebtsPageContent() {
   const router = useRouter();
-  const [tab, setTab] = useState<DebtType>('hutang');
+  const searchParams = useSearchParams();
+  const typeParam = (searchParams.get('type') as DebtType) || 'hutang';
+  
+  const [tab, setTab] = useState<DebtType>(typeParam);
+  
+  useEffect(() => {
+    setTab(typeParam);
+  }, [typeParam]);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { data: debts, isLoading } = useDebts({ type: tab });
 
@@ -24,10 +33,10 @@ export default function DebtsPage() {
     <div className="flex flex-col min-h-dvh bg-background z-50 absolute inset-0 pb-20">
       <div className="flex items-center justify-between p-4 border-b border-border bg-surface/80 backdrop-blur-md sticky top-0 z-10">
         <div className="flex items-center gap-4">
-          <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center rounded-full bg-surface-raised hover:bg-white/5 transition-colors">
+          <button onClick={() => router.push('/')} className="w-10 h-10 flex items-center justify-center rounded-full bg-surface-raised hover:bg-white/5 transition-colors">
             <ArrowLeft size={20} />
           </button>
-          <h1 className="text-xl font-bold">Hutang & Piutang</h1>
+          <h1 className="text-xl font-bold">{tab === 'hutang' ? 'Hutang Saya' : 'Piutang (Uang di Orang)'}</h1>
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
@@ -39,25 +48,7 @@ export default function DebtsPage() {
 
       <div className="p-4 space-y-4 animate-fade-in flex-1">
         
-        {/* Tabs */}
-        <div className="flex p-1 bg-surface-raised rounded-xl mb-6">
-          <button
-            onClick={() => setTab('hutang')}
-            className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${
-              tab === 'hutang' ? 'bg-surface shadow text-danger' : 'text-text-muted'
-            }`}
-          >
-            <ArrowUpRight size={16} /> Hutang Saya
-          </button>
-          <button
-            onClick={() => setTab('piutang')}
-            className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${
-              tab === 'piutang' ? 'bg-surface shadow text-success' : 'text-text-muted'
-            }`}
-          >
-            <ArrowDownLeft size={16} /> Piutang (Orang Lain)
-          </button>
-        </div>
+        {/* Tabs Removed as requested */}
 
         <div className="glass p-5 mb-6 text-center">
           <p className="text-sm text-text-secondary mb-1">
@@ -118,25 +109,39 @@ export default function DebtsPage() {
   );
 }
 
+export default function DebtsPage() {
+  return (
+    <Suspense fallback={<LoadingSkeleton count={3} />}>
+      <DebtsPageContent />
+    </Suspense>
+  );
+}
+
 function AddDebtModal({ isOpen, onClose, defaultType }: { isOpen: boolean; onClose: () => void; defaultType: DebtType }) {
   const { mutate: createDebt, isPending } = useCreateDebt();
+  const { data: wallets } = useWallets();
   const [type, setType] = useState<DebtType>(defaultType);
   const [personName, setPersonName] = useState('');
   const [amount, setAmount] = useState(0);
   const [description, setDescription] = useState('');
+  const [walletId, setWalletId] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!personName.trim() || amount <= 0) return;
+    if (!personName.trim() || amount <= 0 || !walletId) return;
 
     createDebt(
-      { type, person_name: personName, total_amount: amount, description },
+      { type: defaultType, person_name: personName, total_amount: amount, description, wallet_id: walletId },
       {
         onSuccess: () => {
           onClose();
           setPersonName('');
           setAmount(0);
           setDescription('');
+          setWalletId('');
+        },
+        onError: (err) => {
+          alert('Gagal menyimpan: ' + (err instanceof Error ? err.message : 'Unknown error'));
         }
       }
     );
@@ -146,13 +151,15 @@ function AddDebtModal({ isOpen, onClose, defaultType }: { isOpen: boolean; onClo
     <Modal isOpen={isOpen} onClose={onClose} title={defaultType === 'hutang' ? "Catat Hutang Baru" : "Catat Piutang Baru"}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-text-secondary mb-1.5">Nama Peminjam / Yang Dihutangi</label>
+          <label className="block text-sm font-medium text-text-secondary mb-1.5">
+            {defaultType === 'hutang' ? 'Hutang ke Siapa?' : 'Nama Peminjam'}
+          </label>
           <input
             type="text"
             value={personName}
             onChange={(e) => setPersonName(e.target.value)}
             className="input-dark"
-            placeholder="Mis: Budi, Kartu Kredit BCA"
+            placeholder={defaultType === 'hutang' ? 'Mis: Budi, Kartu Kredit BCA' : 'Mis: Budi, Saudara'}
             required
           />
         </div>
@@ -163,6 +170,23 @@ function AddDebtModal({ isOpen, onClose, defaultType }: { isOpen: boolean; onClo
           onChange={setAmount}
           placeholder="0"
         />
+
+        <div>
+          <label className="block text-sm font-medium text-text-secondary mb-1.5">
+            {defaultType === 'hutang' ? 'Uang Masuk ke Dompet' : 'Uang Keluar dari Dompet'}
+          </label>
+          <select
+            value={walletId}
+            onChange={e => setWalletId(e.target.value)}
+            className="input-dark appearance-none"
+            required
+          >
+            <option value="" disabled>Pilih Dompet</option>
+            {wallets?.map(w => (
+              <option key={w.id} value={w.id}>{w.icon} {w.name}</option>
+            ))}
+          </select>
+        </div>
 
         <div>
           <label className="block text-sm font-medium text-text-secondary mb-1.5">Catatan (Opsional)</label>
@@ -177,7 +201,7 @@ function AddDebtModal({ isOpen, onClose, defaultType }: { isOpen: boolean; onClo
         <div className="pt-4 pb-4">
           <button
             type="submit"
-            disabled={!personName.trim() || amount <= 0 || isPending}
+            disabled={!personName.trim() || amount <= 0 || !walletId || isPending}
             className="w-full btn-gradient-primary py-3.5"
           >
             {isPending ? 'Menyimpan...' : 'Simpan Data'}
