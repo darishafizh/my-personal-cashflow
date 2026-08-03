@@ -30,7 +30,9 @@ export default function RootLayout({
   return (
     <html lang="id" className="h-full antialiased">
       <head>
-        <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+        <link rel="icon" href="/icon.png?v=4" type="image/png" sizes="32x32" />
+        <link rel="shortcut icon" href="/icon.png?v=4" type="image/png" />
+        <link rel="apple-touch-icon" href="/icons/icon-192.png?v=4" />
       </head>
       <body className="min-h-dvh flex flex-col relative">
         <ToastProvider>
